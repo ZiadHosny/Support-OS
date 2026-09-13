@@ -109,6 +109,21 @@
       },
       "submitting": "Submitting…",
       "created": "Thank you for your feedback."
+    },
+    "conversation": {
+      "title": "Conversation",
+      "empty": "No messages yet.",
+      "authors": {
+        "customer": "You",
+        "agent": "Agent"
+      },
+      "fields": {
+        "body": "Message"
+      },
+      "actions": {
+        "send": "Send"
+      },
+      "sent": "Your message has been sent."
     }
   }
 }

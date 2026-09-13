@@ -4,6 +4,7 @@ from .views import (
     PortalChatbotHandoffView,
     PortalChatbotView,
     PortalFeedbackViewSet,
+    PortalMessageViewSet,
     PortalTicketViewSet,
 )
 
@@ -28,6 +29,11 @@ urlpatterns = [
         "portal/feedback/",
         PortalFeedbackViewSet.as_view({"post": "create"}),
         name="portal-feedback-create",
+    ),
+    path(
+        "portal/messages/",
+        PortalMessageViewSet.as_view({"get": "list", "post": "create"}),
+        name="portal-message-list",
     ),
     path("portal/chatbot/", PortalChatbotView.as_view(), name="portal-chatbot"),
     path(

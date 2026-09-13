@@ -1,6 +1,7 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from apps.communications.models import Message
 from apps.core.serializers import BaseModelSerializer
 from apps.tickets.models import Feedback, Ticket
 from apps.tickets.serializers import TicketSerializer
@@ -100,6 +101,42 @@ class PortalFeedbackSerializer(BaseModelSerializer):
             raise serializers.ValidationError(
                 _("Feedback can only be submitted for a resolved or closed ticket.")
             )
+        return ticket
+
+
+class PortalMessageSerializer(BaseModelSerializer):
+    """A customer's own reply on their ticket's conversation — the portal
+    counterpart to `MessageViewSet`'s staff-facing shape. No
+    staff-facing serializer is subclassed (unlike `PortalTicketSerializer`
+    narrowing `TicketSerializer`) — this exposes a deliberately narrower
+    field set (`channel`/`metadata`/`target_address` all omitted), so it
+    stands alone, the same relationship `PortalFeedbackSerializer` has to
+    `Feedback` (no staff viewer exists to subclass either).
+
+    `author` is derived rather than exposing `direction` raw — the same
+    reasoning `apps.portal.views._chatbot_state()` already documents: "a
+    customer-facing surface should not have to know that 'outbound' means
+    'not the customer.'"
+    """
+
+    author = serializers.SerializerMethodField()
+    immutable_fields = ("ticket",)
+
+    class Meta(BaseModelSerializer.Meta):
+        model = Message
+        fields = ("id", "ticket", "author", "body", "created_at")
+
+    def get_author(self, message: Message) -> str:
+        return "customer" if message.direction == Message.Direction.INBOUND else "agent"
+
+    def validate_ticket(self, ticket: Ticket) -> Ticket:
+        """Ownership only — deliberately no status branch. Contrast
+        `PortalFeedbackSerializer.validate_ticket` (post-resolution
+        only): a customer can reply regardless of ticket status.
+        """
+        customer = self.context["request"].user.customer_profile
+        if ticket.customer_id != customer.id:
+            raise serializers.ValidationError(_("That ticket does not belong to you."))
         return ticket
 
 

@@ -21,6 +21,7 @@ from apps.tickets.models import Feedback, Ticket
 from .serializers import (
     PortalChatbotMessageSerializer,
     PortalFeedbackSerializer,
+    PortalMessageSerializer,
     PortalTicketSerializer,
 )
 
@@ -134,6 +135,61 @@ class PortalFeedbackViewSet(CustomerScopedModelViewSet):
                 _("Only customer accounts can submit feedback through the portal.")
             )
         serializer.save(customer=self.request.user.customer_profile)
+
+
+class PortalMessageViewSet(CustomerScopedModelViewSet):
+    """A customer's own reply thread on their tickets. `list` + `create`
+    only — never `retrieve`/`update`/`partial_update`/`destroy`: no
+    object-level permission check ever runs against a `Message` through
+    this viewset (only `RetrieveModelMixin`/`UpdateModelMixin`/
+    `DestroyModelMixin` trigger `HasPermission.has_object_permission`),
+    which is what makes the nested `customer_field` below safe. Do not
+    add those routes without re-deriving that reasoning first.
+
+    `customer_field = "ticket__customer"` — `Message` has no direct
+    `customer` FK (unlike `Feedback`, which denormalized one specifically
+    to support `has_object_permission`'s single-attribute lookup — not
+    needed here since this viewset never triggers that check).
+    """
+
+    customer_field = "ticket__customer"
+    queryset = Message.objects.select_related("ticket").all()
+    serializer_class = PortalMessageSerializer
+    permission_map = {
+        "list": Permissions.PORTAL_ACCESS,
+        "create": Permissions.PORTAL_ACCESS,
+    }
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action != "list":
+            return queryset
+        # Same required-param shape as MessageViewSet.get_queryset
+        # (apps/communications/views.py) — a conversation list with no
+        # ticket filter makes no sense for either surface.
+        ticket_id = self.request.query_params.get("ticket")
+        if not ticket_id:
+            raise ValidationError({"ticket": [_("This query parameter is required.")]})
+        try:
+            ticket_id = int(ticket_id)
+        except ValueError:
+            raise ValidationError({"ticket": [_("Must be a valid ticket id.")]}) from None
+        return queryset.filter(ticket_id=ticket_id)
+
+    def perform_create(self, serializer):
+        # Same guard as PortalTicketViewSet.perform_create /
+        # PortalFeedbackViewSet.perform_create — a staff account can hold
+        # portal.access (e.g. super_admin) without ever having a linked
+        # Customer row.
+        if not hasattr(self.request.user, "customer_profile"):
+            raise PermissionDenied(
+                _("Only customer accounts can send messages through the portal.")
+            )
+        # A portal reply is always inbound, always web_form — never
+        # client-controlled. No adapter dispatch: MessageViewSet.perform_create
+        # only calls adapter.send() for OUTBOUND messages; an inbound
+        # customer message needs no delivery step.
+        serializer.save(direction=Message.Direction.INBOUND, channel=Message.Channel.WEB_FORM)
 
 
 def _chatbot_state(session: ChatbotSession) -> dict:

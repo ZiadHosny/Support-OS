@@ -9,11 +9,13 @@ import { QueryBoundary } from '@/shared/ui/QueryBoundary'
 
 import { usePortalTicket } from '../api/usePortalTicket'
 import { ticketPriorityVariant, ticketStatusVariant } from '../lib/statusBadge'
+import { PortalConversationSection } from './PortalConversationSection'
 
 /**
- * A read-only view of one of the customer's own tickets — PORTAL-2. No
- * assign/escalate/status controls, no conversation, no internal notes —
- * all staff/agent-only concerns the staff `TicketDetailPage`
+ * A mostly read-only view of one of the customer's own tickets —
+ * PORTAL-2, plus `PortalConversationSection`'s reply thread (a later
+ * addition). Still no assign/escalate/status controls, no internal
+ * notes — all staff/agent-only concerns the staff `TicketDetailPage`
  * (features/tickets/components/TicketDetailPage.tsx) has that this one
  * deliberately does not reuse or mirror.
  */
@@ -90,6 +92,7 @@ export function PortalTicketDetailPage() {
                   </dl>
                 </CardContent>
               </Card>
+              <PortalConversationSection ticketId={ticket.id} />
               {!ticket.has_feedback &&
               (ticket.status === 'resolved' || ticket.status === 'closed') ? (
                 <Button asChild>
