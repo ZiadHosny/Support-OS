@@ -1,6 +1,6 @@
 import { PlusIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link, Outlet } from 'react-router'
+import { Link } from 'react-router'
 
 import { Can } from '@/shared/auth'
 import { useDebouncedSearch } from '@/shared/hooks/useDebouncedSearch'
@@ -98,51 +98,48 @@ export function LandingHighlightListPage() {
   ]
 
   return (
-    <>
-      <div className="flex flex-col gap-4">
-        <PageHeader
-          title={t('landingHighlights.title')}
-          action={
-            <Can permission="settings.manage">
-              <Button asChild>
-                <Link to="/settings/landing/highlights/new">
-                  <PlusIcon />
-                  {t('landingHighlights.new')}
-                </Link>
-              </Button>
-            </Can>
-          }
-        />
-        <Input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder={t('landingHighlights.searchPlaceholder')}
-          aria-label={t('landingHighlights.search')}
-        />
-        <DataTable
-          columns={columns}
-          query={query}
-          rowKey={(row) => String(row.id)}
-          sort={sort}
-          onSortChange={setSort}
-          onPageChange={setPage}
-          caption={t('landingHighlights.title')}
-          empty={
-            search ? (
-              <Empty title={t('landingHighlights.noSearchResults')} />
-            ) : (
-              // The empty description MUST say the shipped cards still render.
-              // An admin who deletes every row, visits `/`, and sees four cards
-              // would otherwise conclude the delete silently failed.
-              <Empty
-                title={t('landingHighlights.empty')}
-                description={t('landingHighlights.emptyDescription')}
-              />
-            )
-          }
-        />
-      </div>
-      <Outlet />
-    </>
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title={t('landingHighlights.title')}
+        action={
+          <Can permission="settings.manage">
+            <Button asChild>
+              <Link to="/settings/landing/highlights/new">
+                <PlusIcon />
+                {t('landingHighlights.new')}
+              </Link>
+            </Button>
+          </Can>
+        }
+      />
+      <Input
+        value={searchInput}
+        onChange={(event) => setSearchInput(event.target.value)}
+        placeholder={t('landingHighlights.searchPlaceholder')}
+        aria-label={t('landingHighlights.search')}
+      />
+      <DataTable
+        columns={columns}
+        query={query}
+        rowKey={(row) => String(row.id)}
+        sort={sort}
+        onSortChange={setSort}
+        onPageChange={setPage}
+        caption={t('landingHighlights.title')}
+        empty={
+          search ? (
+            <Empty title={t('landingHighlights.noSearchResults')} />
+          ) : (
+            // The empty description MUST say the shipped cards still render.
+            // An admin who deletes every row, visits `/`, and sees four cards
+            // would otherwise conclude the delete silently failed.
+            <Empty
+              title={t('landingHighlights.empty')}
+              description={t('landingHighlights.emptyDescription')}
+            />
+          )
+        }
+      />
+    </div>
   )
 }

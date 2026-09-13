@@ -527,27 +527,28 @@ export const router = createBrowserRouter([
                         await import('@/features/organization/components/LandingHighlightListPage')
                       return { element: <LandingHighlightListPage /> }
                     },
-                    // `new`/`:id/edit` nested under the list route —
-                    // `DSN-15` (Story 112): `LandingHighlightListPage`
-                    // renders `<Outlet />` and these mount as its dialog.
-                    children: [
-                      {
-                        path: 'new',
-                        lazy: async () => {
-                          const { LandingHighlightFormDialog } =
-                            await import('@/features/organization/components/LandingHighlightFormPage')
-                          return { element: <LandingHighlightFormDialog /> }
-                        },
-                      },
-                      {
-                        path: ':id/edit',
-                        lazy: async () => {
-                          const { LandingHighlightFormDialog } =
-                            await import('@/features/organization/components/LandingHighlightFormPage')
-                          return { element: <LandingHighlightFormDialog /> }
-                        },
-                      },
-                    ],
+                  },
+                  {
+                    // Must stay before `settings/landing/highlights/:id/edit`,
+                    // same reason as `customers/new`. A full page, not a
+                    // dialog (former `DSN-15` classification) — this form's
+                    // three bilingual Cards with auto-growing textareas
+                    // could exceed the viewport, clipping the Save button
+                    // with no way to scroll to it.
+                    path: 'settings/landing/highlights/new',
+                    lazy: async () => {
+                      const { LandingHighlightFormPage } =
+                        await import('@/features/organization/components/LandingHighlightFormPage')
+                      return { element: <LandingHighlightFormPage /> }
+                    },
+                  },
+                  {
+                    path: 'settings/landing/highlights/:id/edit',
+                    lazy: async () => {
+                      const { LandingHighlightFormPage } =
+                        await import('@/features/organization/components/LandingHighlightFormPage')
+                      return { element: <LandingHighlightFormPage /> }
+                    },
                   },
                   {
                     // LAND-3.

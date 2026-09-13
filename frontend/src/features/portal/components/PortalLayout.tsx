@@ -24,7 +24,7 @@ export function PortalLayout() {
   const { user, logout } = useAuth()
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="flex h-dvh flex-col bg-background">
       <header className="border-b">
         <div className="container mx-auto flex flex-wrap items-center gap-4 px-4 py-3">
           <BrandMark />
@@ -123,7 +123,7 @@ export function PortalLayout() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto flex-1 overflow-y-auto px-4 py-6">
         <Outlet />
       </main>
     </div>

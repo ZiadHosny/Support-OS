@@ -10,9 +10,6 @@ import { Button } from '@/shared/ui/primitives/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/primitives/card'
 import { Form } from '@/shared/ui/primitives/form'
 import {
-  FormDialog,
-  FormDialogClose,
-  FormDialogFooter,
   FormErrorSummary,
   SelectField,
   SubmitButton,
@@ -20,6 +17,7 @@ import {
   TextareaField,
   useAppForm,
 } from '@/shared/ui/form'
+import { useConfirm } from '@/shared/ui/confirm/useConfirm'
 import { QueryBoundary } from '@/shared/ui/QueryBoundary'
 import { useToast } from '@/shared/ui/toast/useToast'
 
@@ -73,10 +71,13 @@ function toHighlightInput(values: FormValues): LandingHighlightInput {
   return { ...values }
 }
 
-/** Nested under `LandingHighlightListPage`'s own route (`frontend/src/app/
- *  router.tsx`) — the list renders `<Outlet />`, this mounts only for
- *  `new`/`:id/edit`. `DSN-15` (Story 112) — see CONVENTIONS.md's entry. */
-export function LandingHighlightFormDialog() {
+/** A full page, not a dialog — this form's three bilingual Cards with
+ *  auto-growing textareas can exceed the viewport height, which left the
+ *  Save button unreachable in a fixed-height dialog. Formerly `DSN-15`
+ *  (Story 112) classified this as a dialog on width alone; that premise
+ *  didn't account for height. See `TicketFormPage` for the same
+ *  create/edit-in-one-component shape. */
+export function LandingHighlightFormPage() {
   const { id: idParam } = useParams()
   const isEdit = idParam !== undefined
   const id = Number(idParam)
@@ -106,6 +107,7 @@ function LandingHighlightForm({
   const { t } = useTranslation('organization')
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { confirm } = useConfirm()
   const [formErrors, setFormErrors] = useState<string[]>([])
 
   const form = useAppForm({
@@ -141,16 +143,26 @@ function LandingHighlightForm({
     })
   }
 
+  // Mirrors `FormDialog`'s own dismiss-confirm — this form used to get it
+  // for free from the dialog wrapper's single `onOpenChange`; as a full
+  // page, the Cancel button has to gate it itself.
+  async function handleCancel() {
+    if (form.formState.isDirty) {
+      const confirmed = await confirm({
+        title: t('unsavedChanges.title', { ns: 'common' }),
+        description: t('unsavedChanges.description', { ns: 'common' }),
+        destructive: true,
+      })
+      if (!confirmed) return
+    }
+    navigate(LIST_PATH)
+  }
+
   return (
-    <FormDialog
-      open
-      onOpenChange={(open) => {
-        if (!open) navigate(LIST_PATH)
-      }}
-      title={t(mode === 'create' ? 'landingHighlights.new' : 'landingHighlights.edit')}
-      isDirty={form.formState.isDirty}
-      contentClassName="sm:max-w-2xl"
-    >
+    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+      <h1 className="text-lg font-semibold">
+        {t(mode === 'create' ? 'landingHighlights.new' : 'landingHighlights.edit')}
+      </h1>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <Card>
@@ -218,18 +230,16 @@ function LandingHighlightForm({
             </CardContent>
           </Card>
           <FormErrorSummary errors={formErrors} />
-          <FormDialogFooter>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <SubmitButton pending={mutation.isPending}>
               {t('landingHighlights.actions.save')}
             </SubmitButton>
-            <FormDialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('actions.cancel', { ns: 'common' })}
-              </Button>
-            </FormDialogClose>
-          </FormDialogFooter>
+            <Button type="button" variant="outline" onClick={() => void handleCancel()}>
+              {t('actions.cancel', { ns: 'common' })}
+            </Button>
+          </div>
         </form>
       </Form>
-    </FormDialog>
+    </div>
   )
 }
