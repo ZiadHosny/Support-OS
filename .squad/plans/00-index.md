@@ -26,7 +26,7 @@ The `NN` sequence encodes execution order implicitly. Two sections below make it
 | production-readiness | [production-readiness/00-overview.md](production-readiness/00-overview.md) | 88, 91, 92, 93 (EPIC 17 **fully planned**; PROD-1/PROD-2/PROD-3 implemented, PROD-4 planned) |
 | bugs | [bugs/00-overview.md](bugs/00-overview.md) | 99 (defect remediation, not a backlog epic — cut from `qa-report-1`; Stories 99–105 all implemented, closing F-1..F-20. F-3 and F-15 are deferred by explicit decision, recorded in the overview) |
 | portal-ticket-conversation | [portal-ticket-conversation/00-overview.md](portal-ticket-conversation/00-overview.md) | 115 (a later addition to the customer-portal area, raised from a user question about the portal's lack of a ticket reply/conversation feature — not a numbered backlog epic; Story 115 planned, not yet implemented) |
-| node-js-backend-port | [node-js-backend-port/00-overview.md](node-js-backend-port/00-overview.md) | 116 (EPIC 18, NODE-0 through NODE-12; only NODE-0 (Story 116, SUPPORTOS-141) is planned — the remaining 12 stories are listed in the overview but not yet planned. The port replaces the Django API behind an unchanged contract and adds **no product scope**) |
+| node-js-backend-port | [node-js-backend-port/00-overview.md](node-js-backend-port/00-overview.md) | 116–117 (EPIC 18, NODE-0 through NODE-12; NODE-0 (Story 116, SUPPORTOS-141) and NODE-1 (Story 117, SUPPORTOS-142) are both planned **and implemented**. The remaining 10 stories are listed in the overview but not yet planned. The port replaces the Django API behind an unchanged contract and adds **no product scope**) |
 
 ---
 

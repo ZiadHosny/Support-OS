@@ -11,6 +11,7 @@ This feature is `EPIC 18 — Node.js Backend Port` (`SupportOs backlog.MD:1131-1
 | NN | File | Title | Tracker id | Depends on |
 |----|------|-------|------------|------------|
 | 116 | [116-story-port-contract-node-conventions-SUPPORTOS-141.md](116-story-port-contract-node-conventions-SUPPORTOS-141.md) | (NODE-0) Port Contract & Node Conventions | SUPPORTOS-141 | All prior epics (the Django API is the thing being frozen); Story 80 (`INT-1`, `../integrations/`) and Story 104 (`../bugs/104-story-openapi-schema-completeness.md`), both implemented |
+| 117 | [117-story-node-service-foundation-SUPPORTOS-142.md](117-story-node-service-foundation-SUPPORTOS-142.md) | (NODE-1) Node Service Foundation | SUPPORTOS-142 | Story 116 (`NODE-0`) — consumes both its artefacts: `docs/api-contract.django.yaml` and `CONVENTIONS-NODE.md` |
 
 ## Dependency notes
 
@@ -27,11 +28,24 @@ Two deviations from the plan as written, both deliberate:
 
 **`django-baseline` is tagged locally** at `30ea5a4`, the commit preceding this story's work. **It has not been pushed** — the plan requires confirmation first, and `git ls-remote --tags origin` shows the remote has no tags at all.
 
-**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1142-1237`), in their backlog dependency order. Intakes now exist for NODE-1 through NODE-4 and NODE-6:
+**Story 117 (`NODE-1`) is implemented.** `backend-node/` is a NestJS service (Nest 12, Express 5, Prisma 7, `type: "module"`/ESM throughout) listening on **8002**, with only `CoreModule` wired — no domain module. `GET /api/health/` is **byte-for-byte identical** to Django's on both the 200 and the simulated-503 path (both are `success: true` envelopes — the divergent case `test_health_reports_degraded_when_database_unreachable` pins). Every case in `apps/core/tests/test_health.py` was walked live against the running service: 405 on every non-GET method, 406 on `Accept: text/html`, `parse_error` on a malformed JSON body, an empty-bodied CORS preflight with no envelope, the `/api/` catch-all returning 404-not-405 on five methods, and non-`/api/` paths left untouched (HTML, not JSON). `backend-node/prisma/schema.prisma` is a committed introspection of the live database — **62 models**, comfortably over the ≥43 bar — and `npm run check:no-migrations` passes clean and fails correctly when a `prisma/migrations/` directory is introduced. Django's own suite (**54 tests**) and Ruff are unaffected; `backend-node`'s own `npm run lint`/`format:check` are clean.
+
+Three findings from planning were confirmed, and four more surfaced only once the service actually ran — each is the kind of gap a plan's own prose can't catch, and each was fixed before verification passed:
+
+- **`/api/health/` is not in the frozen contract** (`@extend_schema(exclude=True)`, `backend/apps/core/views.py:71`) — confirmed; verified by diffing against running Django instead, as planned.
+- **No `DATABASE_URL` anywhere in this project** — confirmed, but Prisma 7 turned out to need more than the plan assumed: its new `prisma-client` generator requires an explicit **driver adapter** (`@prisma/adapter-pg`'s `PrismaPg`), not `env("DATABASE_URL")` inside `schema.prisma`. `PrismaService` composes the connection string from its injected, validated config and hands it straight to the adapter — `DATABASE_URL` is written to `process.env` nowhere at all, tighter than the plan's own design.
+- **Port 8002** — confirmed and used.
+- **Nest mounts `configure()`-registered middleware AT the global prefix.** Inside `RequestIdMiddleware`/`AccessLogMiddleware`, `req.path` for `/api/health/` reads as `/` (relative to the `/api` mount), not the full path — silently breaking the `SKIP_PATHS` access-log exemption and (via the exception filter's identical `request.path` read) every `http_path` structured-log field. Fixed with a `getRequestPath()` helper reading `req.originalUrl` (query-string sliced off), which Express never rewrites for a sub-mount; applied everywhere a path is read, including `paginate.ts` for `NODE-4`.
+- **Nest's `ExpressAdapter.mapException` silently rewrites a raw body-parser `SyntaxError` into a `BadRequestException`** before any `@Catch()` filter ever sees it — so `exception instanceof SyntaxError` (what the plan specified) can never be true, and a malformed-body POST landed as `validation_error` instead of either Django-accepted outcome. Fixed by detecting the rewrap via its message text (V8's `JSON.parse()` errors always mention "JSON").
+- **`debug` was being attached to every 4xx, not just 500s.** `apps/core/exceptions.py` only ever passes `debug=` to `error_envelope` from the unrecognised/500 path — every recognised exception (400/401/403/404/405/406…) never gets one, `DJANGO_DEBUG` or not. A 405/406 with a full stack trace embedded was a real divergence, caught by comparing live output against Django's actual response rather than trusting the code to be right.
+- **Multiple HTTP-verb decorators stacked on one Nest controller method silently keep only the last one applied.** `@Post() @Put() @Patch() @Delete() @Options()` on a single `disallowed()` handler registered **POST only** — confirmed by reading Nest's own startup route log, not assumed correct. Each disallowed verb needed its own handler method.
+
+None of this was visible from reading the plan or the Django source alone — Prisma 7's adapter requirement, Nest's prefix-relative middleware paths, and the body-parser exception rewrap are all framework behaviors the plan (written before any Node code existed) could not have anticipated. Verification Step 7's byte-for-byte diff is what caught the first pass being wrong, repeatedly, before the story was called done.
+
+**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1150-1237`), in their backlog dependency order. Intakes now exist for NODE-2 through NODE-4 and NODE-6:
 
 | Backlog story | Title | Tracker id | Depends on |
 |---|---|---|---|
-| NODE-1 | Node Service Foundation | SUPPORTOS-142 | NODE-0 |
 | NODE-2 | Contract-Diff Harness | SUPPORTOS-143 | NODE-0, NODE-1 |
 | NODE-3 | Authentication, Permissions & Scoping | SUPPORTOS-144 | NODE-1, NODE-2 |
 | NODE-4 | Customer Management Port | SUPPORTOS-145 | NODE-3 |

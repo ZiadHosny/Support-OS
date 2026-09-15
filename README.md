@@ -882,6 +882,7 @@ developer discovers it.
 | `ANTHROPIC_API_KEY` | no | *(empty — AI features refuse to run until set)* | API key for Anthropic's Claude API — the one AI provider integration point (AI-0). |
 | `AI_MODEL` | no | `claude-opus-5` | Claude model id `apps.ai.client.generate_completion` uses by default. |
 | `API_DOCS_PUBLIC` | no | `True` | Whether `/api/schema/`, `/api/docs/`, `/api/redoc/` are reachable without credentials. `False` narrows all three to `IsAuthenticated` (INT-1). |
+| `NODE_PORT` | no | `8002` | Port `backend-node/` (the Node port, `EPIC 18`) listens on. Read from this same `backend/.env` — there is no separate `backend-node/.env`. `8000`/`8001` are already the two Django paths; see § Ports. |
 
 ### Frontend — `frontend/.env`
 
