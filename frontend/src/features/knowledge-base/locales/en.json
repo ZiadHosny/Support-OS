@@ -87,7 +87,6 @@
     "browse": {
       "empty": "No articles yet",
       "emptyDescription": "Check back later.",
-      "readMore": "Read more",
       "filterCategory": "Filter by category",
       "allCategories": "All categories",
       "noCategoryResults": "No articles in this category."

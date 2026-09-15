@@ -87,7 +87,6 @@
     "browse": {
       "empty": "لا توجد مقالات بعد",
       "emptyDescription": "يرجى التحقق لاحقًا.",
-      "readMore": "قراءة المزيد",
       "filterCategory": "التصفية حسب الفئة",
       "allCategories": "كل الفئات",
       "noCategoryResults": "لا توجد مقالات في هذه الفئة."

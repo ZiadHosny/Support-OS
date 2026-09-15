@@ -50,12 +50,31 @@ re-deriving a standard.
 │   ├── Dockerfile          Optional container image — see § Docker
 │   └── .env.example        Frontend environment contract — copy to frontend/.env
 ├── .squad/                 squad-kit: story intakes, implementation plans, project config
+├── docs/                   Architecture, workflow, assumption and verification records
 ├── docker-compose.yml      Optional dev-parity stack — NEVER required, see § Docker
 ├── .env.docker.example     Environment contract for the optional Docker path
 ├── SupportOs backlog.MD    Full product backlog (epics → stories → tasks) and shared specs
 ├── CONVENTIONS.md          The CONV spec — single source of truth, reference-based
 └── README.md               This file — the only document needed to run the project locally
 ```
+
+---
+
+## Documentation map
+
+This README gets the project running. These answer the questions it does not.
+
+| Document | The question it answers |
+|---|---|
+| [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) | What does the implementation take as given, and what does "done" mean per capability? Acceptance criteria for customer CRUD, ticket CRUD, auth/permissions, the agent workspace, the portal and setup — each with its verification status. |
+| [`docs/BACKEND-ARCHITECTURE.md`](docs/BACKEND-ARCHITECTURE.md) | For a given request, which file is responsible for what? Models, routes, controllers and services per app, the request lifecycle, and a measured manifest. |
+| [`docs/FRONTEND-WORKFLOWS.md`](docs/FRONTEND-WORKFLOWS.md) | Which screens exist, and does each one actually reach the database? Full route inventory with permission gates, plus screen → hook → endpoint → controller → model traces. |
+| [`docs/VERIFICATION.md`](docs/VERIFICATION.md) | How is this built and what did the checks actually print? The spec-driven loop and its prompts, recorded command output, and an honest coverage-gap list. |
+| [`.squad/plans/00-index.md`](.squad/plans/00-index.md) | In what order was this built and why? Dependency-ordered epics and a per-epic layer coverage matrix. |
+| [`HOW_TO_USE.md`](HOW_TO_USE.md) | How do I exercise the product? Demo accounts, business rules, role/permission matrix, status transitions, manual test scenarios. |
+| [`CONVENTIONS.md`](CONVENTIONS.md) | How is code written here? The `CONV` spec — structure, naming, API conventions, logging, linting. |
+| [`backend/apps/README.md`](backend/apps/README.md) | Where does a new backend file go? The app-layout decision record. |
+| [`QA-REPORT-1.md`](QA-REPORT-1.md) | What was found in QA, and what became of it? Findings F-1…F-20 and the `bugs/` stories that closed them. |
 
 ---
 
@@ -204,10 +223,30 @@ without its migration is a broken tree for everyone else; `makemigrations --chec
 guard, and there is a test enforcing it (`config/tests/test_settings.py`,
 `MigrationStateTests`).
 
-The domain apps have no models yet, so `makemigrations` correctly reports **`No changes
-detected`**. `apps.core.models.TimeStampedModel` is abstract and produces no migration either. Do
-**not** hand-write an empty initial migration to make the tree look complete — the first real
-migration arrives with the first domain model.
+On a clean tree `makemigrations` reports **`No changes detected`** — the 91 migrations under
+`backend/apps/*/migrations/` fully describe the 43 domain models. `apps.core.models.TimeStampedModel`
+is abstract and produces no migration of its own.
+
+### Seed demo data
+
+`migrate` leaves you with an empty database: no customers, no tickets, and no staff accounts
+to sign in as. Seed a realistic demo dataset:
+
+```powershell
+python manage.py seed_demo_data            # users, customers, tickets, SLA config, tasks, notes
+python manage.py sync_role_permissions     # verify role grants match the permission catalog
+```
+
+`seed_demo_data` **wipes and recreates** the generated demo data every run, so it is safe to
+re-run; pass `--keep-email your.own@login.local` to protect an account you created yourself. It
+prints the demo MFA secrets as JSON at the end (`--secrets-out path.json` to write them to a
+file instead). Every seeded account uses the same password, and the full account list, business
+rules and test scenarios are documented in [`HOW_TO_USE.md`](HOW_TO_USE.md) § 6.
+
+`sync_role_permissions` reports drift between each role's stored grants and the 25-string
+permission catalog in `apps/core/permissions.py`, and repairs the administrative role with
+`--fix`. Run it after seeding and after any permission change — an endpoint whose permission no
+role holds is enforced-but-ungrantable, which is invisible until someone is refused.
 
 ---
 
@@ -252,6 +291,42 @@ blocked before setup.
 path, so a new clone has no hook until this command is run. The real gate is CI
 (`.github/workflows/lint.yml`), which runs on every push regardless. `git commit --no-verify`
 skips the hook once; that should be rare.
+
+---
+
+## Run the checks
+
+The full battery, and what each one guards. Recorded outcomes from an actual run are in
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+
+**Backend** (from `backend/`, venv active):
+
+```powershell
+python manage.py check                              # Django system checks
+python manage.py makemigrations --check --dry-run    # fails if a model changed without a migration
+python manage.py test                                # the test suite (needs local PostgreSQL)
+python manage.py sync_role_permissions --check       # fails if role grants drift from the catalog
+python manage.py spectacular --file openapi.yaml     # regenerate the OpenAPI document
+ruff check .                                         # lint
+ruff format --check .                                # formatting
+```
+
+**Frontend** (from `frontend/`):
+
+```powershell
+npm run build          # tsc -b (full typecheck) + production build
+npm run lint           # oxlint
+npm run format:check   # prettier
+npm run check:rtl      # fails on physical direction utilities — the app ships Arabic
+npm run check:contrast # fails if a design-token pair misses its WCAG AA threshold
+```
+
+Two things this battery does **not** cover, so they are worth stating rather than discovering:
+the backend suite is local-only (CI has no PostgreSQL service or secrets — see the comment in
+`.github/workflows/lint.yml`), and the frontend has no test runner, so behavioural correctness
+is verified manually against [`HOW_TO_USE.md`](HOW_TO_USE.md) § 9. The current coverage map,
+including which workflows have no automated guard, is in
+[`docs/VERIFICATION.md`](docs/VERIFICATION.md#coverage-gaps).
 
 ---
 

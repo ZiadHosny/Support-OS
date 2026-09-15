@@ -4,8 +4,10 @@ notes, notifications) end to end.
 
 Reference/system data is left untouched: roles, scheduled `PeriodicTask`
 rows, org/provider singletons, ticket & knowledge-base categories, and the
-existing `Department`/`Branch` rows. Any user account whose email is passed
-via `--keep-email` (default: `ziad@email.com`) is never touched either.
+existing `Department`/`Branch` rows — those are created only when absent, so
+the command also works on a freshly migrated database. Any user account whose
+email is passed via `--keep-email` (default: `ziad@email.com`) is never
+touched either.
 
 Re-running this command is safe: it wipes its own previous output first.
 """
@@ -44,6 +46,15 @@ from apps.tickets.status import apply_status_change
 
 User = get_user_model()
 PASSWORD = "Passw0rd!2026"
+
+# The ticket categories the seeded tickets and SLA rules below reference by name.
+CATEGORY_NAMES = (
+    "General Inquiry",
+    "Technical Issue",
+    "Account Access",
+    "Billing",
+    "Feature Request",
+)
 
 # Fixed (not randomly generated) so this stays valid across every re-seed —
 # HOW_TO_USE.md documents these exact values for agent.mfa@supportos.local.
@@ -143,16 +154,28 @@ class Command(BaseCommand):
     def _seed(self) -> dict:
         now = timezone.now()
 
-        department_tech = Department.objects.get(name="Technical Support")
-        department_billing = Department.objects.get(name="Billing")
-        branch_cairo = Branch.objects.get(name="Cairo HQ")
-        branch_dubai = Branch.objects.get(name="Dubai Office")
+        # get_or_create, not get: no migration creates these org/reference rows,
+        # so on a freshly `migrate`d database the documented setup path
+        # (`migrate` then `seed_demo_data`) failed on the first lookup.
+        department_tech, _ = Department.objects.get_or_create(name="Technical Support")
+        department_billing, _ = Department.objects.get_or_create(name="Billing")
+        branch_cairo, _ = Branch.objects.get_or_create(name="Cairo HQ")
+        branch_dubai, _ = Branch.objects.get_or_create(name="Dubai Office")
         categories = {c.name: c for c in Category.objects.all()}
+        for name in CATEGORY_NAMES:
+            if name not in categories:
+                categories[name] = Category.objects.create(name=name)
 
         calendar = self._seed_calendar(branch_cairo)
         self._seed_sla_config(categories, calendar)
 
-        role_super_admin = Role.objects.get(slug="super_admin")
+        # Either administrative slug, mirroring `sync_role_permissions.ADMIN_SLUGS`
+        # and migration 0015: a fresh database is seeded with `admin` (migration
+        # 0003) while this project's own database carries `super_admin`, so
+        # keying on one alone works in exactly one environment.
+        role_super_admin = Role.objects.filter(slug="super_admin").first() or Role.objects.get(
+            slug="admin"
+        )
         role_manager = Role.objects.get(slug="manager")
         role_agent = Role.objects.get(slug="agent")
         role_customer = Role.objects.get(slug="customer")

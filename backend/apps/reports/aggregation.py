@@ -219,20 +219,6 @@ def grouped_counts(
     return result
 
 
-def to_series(rows: list[dict], *, series_field: str = "series") -> dict[str, list[dict]]:
-    """Regroup `bucketed_counts(..., series_field=...)` output into
-    `{series_name: [{"bucket": ..., "value": ...}, ...]}` — one entry per
-    line `LineChart` draws. A separate function, not a `bucketed_counts`
-    flag, because CSV export wants the FLAT shape and the chart wants the
-    grouped one, from the same query.
-    """
-    grouped: dict[str, list[dict]] = {}
-    for row in rows:
-        key = row[series_field]
-        grouped.setdefault(key, []).append({"bucket": row["bucket"], "value": row["value"]})
-    return grouped
-
-
 def _bucket_starts(start: datetime, end: datetime, bucket: str) -> list[date]:
     """Every bucket start in [start, end), ascending — the gap-fill spine.
 

@@ -9,7 +9,6 @@ export {
   LANDING_CTA_TARGETS,
   LANDING_ICON_KEYS,
 } from './config'
-export type { LandingCtaTarget, LandingIconKey } from './config'
 export { isSocialPlatform, socialHref, SOCIAL_PLATFORMS } from './social'
 export type { SocialPlatform } from './social'
 export { LandingIcon } from './LandingIcon'

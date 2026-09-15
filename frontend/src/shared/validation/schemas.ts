@@ -74,8 +74,3 @@ export function nullablePositiveInt(max?: number) {
 export function choice<const T extends readonly [string, ...string[]]>(values: T) {
   return z.enum(values)
 }
-
-/** Opt-in boolean (a checkbox that must be ticked, e.g. accept-terms). */
-export function requiredBoolean() {
-  return z.literal(true)
-}

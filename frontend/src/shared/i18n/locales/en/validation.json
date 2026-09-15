@@ -33,9 +33,5 @@
     "starts_with": "This value does not start as expected.",
     "ends_with": "This value does not end as expected.",
     "includes": "This value is missing something required."
-  },
-  "form": {
-    "submitFailed": "The submitted data is invalid. Check the highlighted fields.",
-    "unexpected": "Something went wrong submitting the form. Please try again."
   }
 }
