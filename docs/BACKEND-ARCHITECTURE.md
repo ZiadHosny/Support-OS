@@ -124,6 +124,13 @@ and `drf-spectacular` derives it from the live URLConf and serializers, so gener
 also a consistency check on routes and controllers. It currently generates **clean, with no
 warnings, across 131 paths**.
 
+That rule has exactly one documented exception, and it is not a loophole:
+[`api-contract.django.yaml`](api-contract.django.yaml) is a **frozen snapshot** of this surface,
+committed as the acceptance spec for `EPIC 18`'s Node port (`NODE-0`) so the two implementations
+can be diffed against a fixed reference. It is written only by `python manage.py
+freeze_api_contract`, never by hand, and its own header says so. The live schema is still
+generated on demand and still never checked in.
+
 ### Endpoint distribution (from the generated schema)
 
 | Prefix | Paths | Prefix | Paths |
@@ -175,4 +182,6 @@ schema" is enforced by a command rather than by reviewer memory.
 - [`VERIFICATION.md`](VERIFICATION.md) — commands actually run, with their recorded output
 - [`ASSUMPTIONS.md`](ASSUMPTIONS.md) — assumptions and acceptance criteria these boundaries serve
 - [`CONVENTIONS.md`](../CONVENTIONS.md) — the full `CONV` spec
+- [`CONVENTIONS-NODE.md`](../CONVENTIONS-NODE.md) — `CONV-NODE`, the Node port's counterpart spec (EPIC 18)
+- [`api-contract.django.yaml`](api-contract.django.yaml) — the frozen snapshot of this API surface the port is measured against
 - Root [`README.md`](../README.md) § API conventions — the response envelope contract

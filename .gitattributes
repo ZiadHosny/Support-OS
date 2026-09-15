@@ -1,0 +1,9 @@
+# The frozen port contract (EPIC 18, NODE-0) must be byte-identical on every
+# platform: `python manage.py freeze_api_contract` writes it with LF endings
+# unconditionally, and regenerating it into a scratch file and diffing is how a
+# hand-edit of the snapshot is detected (CONVENTIONS-NODE.md § 1).
+#
+# This repository is cloned with `core.autocrlf=true`, which would otherwise
+# check the file out with CRLF — making every regeneration report a spurious
+# whole-file diff and quietly destroying that check.
+docs/api-contract.django.yaml text eol=lf

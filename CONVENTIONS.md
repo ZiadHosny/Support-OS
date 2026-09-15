@@ -3308,3 +3308,24 @@ business-hours section); the ticket-list and reporting bulk paths
 plain minutes, no calendar lookup — the identical, already-accepted
 simplification §38 documents for due-time calendar-awareness on those same
 two paths, now extended to cover pause too.
+
+---
+
+## 40. Node port conventions (`CONV-NODE`, EPIC 18)
+
+[`CONVENTIONS-NODE.md`](CONVENTIONS-NODE.md) is the Node/TypeScript counterpart of this
+document, for `EPIC 18`'s port of the Django API. It covers only what is genuinely new
+because the runtime is different — module layout, the single envelope interceptor, the
+exception filter and its error-code map, DTO validation, guard placement, config
+validation, and correlation-id propagation.
+
+Everything else in `CONV` still governs the port unchanged: naming (§ 2), the `snake_case`
+wire format (§ 12), the envelope as the only response shape (§ 11), the permission
+vocabulary (§ 22), i18n (§ 18) and logging policy (§ 10, § 34) are cited there by section
+number, never restated.
+
+**The port adds no product scope.** A NODE story that introduces a new endpoint, a new
+response shape, a schema change or a frontend edit has stopped being a port — raise it as
+its own story in the owning epic instead. The acceptance spec is
+[`docs/api-contract.django.yaml`](docs/api-contract.django.yaml), the frozen snapshot of
+this API surface written by `python manage.py freeze_api_contract`.

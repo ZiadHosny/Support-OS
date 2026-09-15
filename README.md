@@ -73,6 +73,8 @@ This README gets the project running. These answer the questions it does not.
 | [`.squad/plans/00-index.md`](.squad/plans/00-index.md) | In what order was this built and why? Dependency-ordered epics and a per-epic layer coverage matrix. |
 | [`HOW_TO_USE.md`](HOW_TO_USE.md) | How do I exercise the product? Demo accounts, business rules, role/permission matrix, status transitions, manual test scenarios. |
 | [`CONVENTIONS.md`](CONVENTIONS.md) | How is code written here? The `CONV` spec — structure, naming, API conventions, logging, linting. |
+| [`CONVENTIONS-NODE.md`](CONVENTIONS-NODE.md) | How is the Node port written? The `CONV-NODE` spec — module layout, envelope interceptor, exception filter, guards, config. |
+| [`docs/api-contract.django.yaml`](docs/api-contract.django.yaml) | What must the Node service answer? The frozen Django API contract EPIC 18 is measured against. |
 | [`backend/apps/README.md`](backend/apps/README.md) | Where does a new backend file go? The app-layout decision record. |
 | [`QA-REPORT-1.md`](QA-REPORT-1.md) | What was found in QA, and what became of it? Findings F-1…F-20 and the `bugs/` stories that closed them. |
 
