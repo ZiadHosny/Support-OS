@@ -26,6 +26,7 @@ The `NN` sequence encodes execution order implicitly. Two sections below make it
 | production-readiness | [production-readiness/00-overview.md](production-readiness/00-overview.md) | 88, 91, 92, 93 (EPIC 17 **fully planned**; PROD-1/PROD-2/PROD-3 implemented, PROD-4 planned) |
 | bugs | [bugs/00-overview.md](bugs/00-overview.md) | 99 (defect remediation, not a backlog epic — cut from `qa-report-1`; Stories 99–105 all implemented, closing F-1..F-20. F-3 and F-15 are deferred by explicit decision, recorded in the overview) |
 | portal-ticket-conversation | [portal-ticket-conversation/00-overview.md](portal-ticket-conversation/00-overview.md) | 115 (a later addition to the customer-portal area, raised from a user question about the portal's lack of a ticket reply/conversation feature — not a numbered backlog epic; Story 115 planned, not yet implemented) |
+| node-js-backend-port | [node-js-backend-port/00-overview.md](node-js-backend-port/00-overview.md) | 116 (EPIC 18, NODE-0 through NODE-12; only NODE-0 (Story 116, SUPPORTOS-141) is planned — the remaining 12 stories are listed in the overview but not yet planned. The port replaces the Django API behind an unchanged contract and adds **no product scope**) |
 
 ---
 
@@ -55,6 +56,7 @@ is — the ordering is a data dependency, not a preference.
 | 15 | public-landing-page | 1 | the design system; deliberately independent of the authenticated app |
 | 16 | multi-department-multi-branch-branding | 2, 3, 4 | the scoping seam — departments/branches narrow user, customer and ticket visibility, so the three models must exist first |
 | 17 | production-readiness | all of the above | performance/caching, security hardening and deployment posture applied to a complete system |
+| 18 | node-js-backend-port | all of the above | nothing — the port has no product scope of its own, only the scope already shipped. It depends on every prior epic because the frozen Django contract it is measured against *is* their combined API surface |
 | — | bugs | `QA-REPORT-1` | defect remediation cut from the QA pass; Stories 99–105 close findings F-1…F-20 (F-3 and F-15 deferred by recorded decision) |
 | — | portal-ticket-conversation | 10 | the portal ticket surface it adds a reply thread to |
 
