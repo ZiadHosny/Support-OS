@@ -26,6 +26,20 @@ header is written by that command, and a hand-edited snapshot is indistinguishab
 one. A snapshot that drifts from Django surfaces as harness mismatches on the *Node* side, which
 is the wrong place to discover it.
 
+**Running the harness.** `npm run contract:diff` from `backend-node/`, with both services already
+running (`python manage.py runserver` from `backend/`; `npm run dev` from `backend-node/`).
+Read-only by default (the 95 `GET` operations); `--mutating` also issues the other 144, and shares
+one database with Django, so it is not idempotent — re-seed before and after. `--only <tag>`
+restricts to one or more contract tags; `--json <path>` also writes a machine-readable report.
+
+**Every NODE story that ports an operation carries two obligations, in the same change as the
+port:** add the operation's `operationId` to
+[`backend-node/scripts/contract-diff/implemented.json`](backend-node/scripts/contract-diff/implemented.json),
+and, if it is a mutating operation, add a request body to
+[`backend-node/scripts/contract-diff/fixtures.json`](backend-node/scripts/contract-diff/fixtures.json)
+keyed by the same `operationId`. Both ship empty from `NODE-2`. An operation the harness answers
+but the manifest does not list fails the run as `UNDECLARED` — the manifest cannot drift silently.
+
 ---
 
 ## 2. The database is introspect-only

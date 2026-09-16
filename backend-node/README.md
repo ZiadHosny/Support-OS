@@ -22,3 +22,6 @@ Both services share one `.env`: `../backend/.env`. From this directory:
 npm install
 npm run dev          # http://localhost:8002/api/health/
 ```
+
+With Django also running, `npm run contract:diff` measures port progress against the frozen
+contract — see `../CONVENTIONS-NODE.md` § 1.

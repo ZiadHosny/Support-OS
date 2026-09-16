@@ -275,6 +275,104 @@ The five lint warnings are real and unfixed, recorded here rather than rounded o
 | `features/tickets/components/TicketListPage.tsx:140,171,182` | `react(set-state-in-effect)` — `setState` called synchronously in an effect (×3) |
 | `features/tickets/components/TicketListPage.tsx:171` | `react-hooks(exhaustive-deps)` — missing `applyFilters` dependency |
 
+### The Node port — contract-diff baseline (NODE-2, recorded 2026-09-16)
+
+`backend-node/scripts/contract-diff/` is the acceptance gate for the whole `EPIC 18` port: it
+reads the frozen contract (`docs/api-contract.django.yaml`), issues the same request to Django
+(8000) and Node (8002) for every operation, and classifies each as `MATCH` / `MISMATCH` /
+`NOT_IMPLEMENTED` / `UNDECLARED` / `SKIPPED`. Only `MISMATCH` and `UNDECLARED` fail the run.
+
+This is the **first recorded run**, against `NODE-1`'s service — `implemented.json` and
+`fixtures.json` both ship empty, so nothing is ported yet. Recorded here as the honest **0%
+baseline** every later NODE story's coverage number is measured against; a per-operation line per
+route is omitted below (225 of them read identically `SKIPPED — read-only mode (use --mutating)`
+or `NOT_IMPLEMENTED`) — the header, the per-tag table, the totals and the footer are reproduced
+verbatim.
+
+```console
+$ npm run contract:diff
+Preflighting http://127.0.0.1:8000 and http://127.0.0.1:8002 ...
+Contract parsed: 131 paths, 239 operations, 39 tags (get 95, post 65, patch 30, delete 26, put 23).
+Acquiring token for admin@supportos.local ...
+Discovering {id} values from Django ...
+
+Coverage by tag:
+tag                     matched  mismatch  undecl.  not impl.  skipped  total
+api-keys                0        0         0        1          4        5
+article-categories      0        0         0        2          4        6
+articles                0        0         0        2          4        6
+attachments             0        0         0        1          4        5
+audit-logs              0        0         0        2          0        2
+auth                    0        0         0        1          11       12
+branches                0        0         0        2          4        6
+branding                0        0         0        1          0        1
+calendars               0        0         0        1          5        6
+categories              0        0         0        2          4        6
+contact-details         0        0         0        1          5        6
+customers               0        0         0        4          7        11
+departments             0        0         0        2          4        6
+erp                     0        0         0        5          2        7
+faqs                    0        0         0        2          4        6
+holidays                0        0         0        1          5        6
+internal-notes          0        0         0        1          5        6
+landing                 0        0         0        1          0        1
+landing-highlights      0        0         0        2          4        6
+landing-social-links    0        0         0        2          4        6
+live-chat               0        0         0        0          1        1
+messages                0        0         0        1          5        6
+notes                   0        0         0        1          5        6
+notifications           0        0         0        2          3        5
+permissions             0        0         0        1          0        1
+portal                  0        0         0        3          6        9
+providers               0        0         0        3          3        6
+quick-replies           0        0         0        2          4        6
+reports                 0        0         0        8          0        8
+roles                   0        0         0        2          4        6
+saved-views             0        0         0        2          5        7
+search                  0        0         0        1          0        1
+settings                0        0         0        2          2        4
+tasks                   0        0         0        1          7        8
+tickets                 0        0         0        7          14       21
+users                   0        0         0        2          5        7
+web-form                0        0         0        1          1        2
+webhooks                0        0         0        4          9        13
+working-windows         0        0         0        1          5        6
+
+0/239 operations matching (0%) across 131 paths
+0 mismatch(es), 0 undeclared
+
+Known, deliberately unchecked differences:
+  - error.message is not compared (Node ships English only; Django localises via gettext).
+  - Content-Type is not compared (django: application/json; express: …; charset=utf-8).
+  - Array/list ORDER is not compared — the shape signature ignores element order by
+    construction, so an ordering bug would pass this harness.
+
+Collections with no seed row (operations under them were SKIPPED, not counted):
+  - /api/api-keys/
+  - /api/attachments/
+  - /api/calendars/
+  - /api/contact-details/
+  - /api/holidays/
+  - /api/internal-notes/
+  - /api/messages/
+  - /api/notes/
+  - /api/notifications/
+  - /api/portal/tickets/
+  - /api/tasks/
+  - /api/webhooks/deliveries/
+  - /api/webhooks/subscriptions/
+  - /api/working-windows/
+
+$ echo $?
+0
+```
+
+Exit `0` on a 0%-coverage run is correct, not a bug: "not yet implemented" is progress
+information, and only a real `MISMATCH`/`UNDECLARED` fails the harness. Each later NODE story adds
+its ported operation ids to `implemented.json` (and request-body fixtures to `fixtures.json` for
+any mutating operation it ports) in the same change that ports them — see `CONVENTIONS-NODE.md`
+§ 1.
+
 ### Continuous integration
 
 [`.github/workflows/lint.yml`](../.github/workflows/lint.yml) runs on every push and PR to

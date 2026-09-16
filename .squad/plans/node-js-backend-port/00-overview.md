@@ -12,6 +12,7 @@ This feature is `EPIC 18 — Node.js Backend Port` (`SupportOs backlog.MD:1131-1
 |----|------|-------|------------|------------|
 | 116 | [116-story-port-contract-node-conventions-SUPPORTOS-141.md](116-story-port-contract-node-conventions-SUPPORTOS-141.md) | (NODE-0) Port Contract & Node Conventions | SUPPORTOS-141 | All prior epics (the Django API is the thing being frozen); Story 80 (`INT-1`, `../integrations/`) and Story 104 (`../bugs/104-story-openapi-schema-completeness.md`), both implemented |
 | 117 | [117-story-node-service-foundation-SUPPORTOS-142.md](117-story-node-service-foundation-SUPPORTOS-142.md) | (NODE-1) Node Service Foundation | SUPPORTOS-142 | Story 116 (`NODE-0`) — consumes both its artefacts: `docs/api-contract.django.yaml` and `CONVENTIONS-NODE.md` |
+| 118 | [118-story-contract-diff-harness-SUPPORTOS-143.md](118-story-contract-diff-harness-SUPPORTOS-143.md) | (NODE-2) Contract-Diff Harness | SUPPORTOS-143 | Stories 116 and 117 — reads the frozen contract, and needs a running Node service to diff against |
 
 ## Dependency notes
 
@@ -42,11 +43,20 @@ Three findings from planning were confirmed, and four more surfaced only once th
 
 None of this was visible from reading the plan or the Django source alone — Prisma 7's adapter requirement, Nest's prefix-relative middleware paths, and the body-parser exception rewrap are all framework behaviors the plan (written before any Node code existed) could not have anticipated. Verification Step 7's byte-for-byte diff is what caught the first pass being wrong, repeatedly, before the story was called done.
 
-**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1150-1237`), in their backlog dependency order. Intakes now exist for NODE-2 through NODE-4 and NODE-6:
+**Story 118 (`NODE-2`) is planned, not yet implemented.** It is the acceptance gate every later NODE story is measured by, so the plan is built on measured contract facts rather than assumptions — all verified this session against `docs/api-contract.django.yaml` and both running services:
+
+- **131 paths, 239 operations** (95 GET, 65 POST, 30 PATCH, 26 DELETE, 23 PUT), **239 unique `operationId`s** — the stable key the harness and its manifest are built around — and **39 `tags`**, which are the per-module grouping the coverage report needs without inventing one.
+- **The only path placeholder in the whole contract is `{id}`** (52 paths, 125 operations), and **all 31 collection parents derived by truncating at `/{id}/` exist as contract paths themselves** — verified, zero misses. That turns id substitution into one rule instead of a table of special cases, and runtime discovery is mandatory because `HOW_TO_USE.md` records that seeded ids are *not* stable across re-seeds.
+- **The shared database is already the "same seeded database" the backlog asks for.** `NODE-1` pointed both services at one `backend/.env`, so there is nothing to synchronise — but it also means a mutating request writes twice. Hence read-only by default, `--mutating` opt-in with a loud warning, since `seed_demo_data` deletes *all* rows of the models it manages, not only seeded ones.
+- **Node's catch-all `404 not_found` is shape-identical to a legitimate 404**, so classification keys on an explicit `implemented.json` manifest rather than on status codes — plus an **`UNDECLARED`** outcome that fails the run when Node answers a path the manifest does not claim, so the manifest cannot drift silently.
+- Confirmed live: `POST /api/auth/token/` with `admin@supportos.local` / `Passw0rd!2026` returns the enveloped `{access, refresh}`; the same token against Django's `/api/customers/` returns real rows while Node returns its catch-all 404 — the exact "not yet implemented" signature the harness classifies on.
+
+The plan ships the **0 % baseline** deliberately: with `NODE-1`'s service, 0 of 239 operations are implemented, so the first green run reports 0 % coverage and exits 0, and that run is recorded verbatim in `docs/VERIFICATION.md`. A coverage report that first appears at 40 % has no credible starting point.
+
+**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1157-1237`), in their backlog dependency order. Intakes exist for NODE-3, NODE-4 and NODE-6:
 
 | Backlog story | Title | Tracker id | Depends on |
 |---|---|---|---|
-| NODE-2 | Contract-Diff Harness | SUPPORTOS-143 | NODE-0, NODE-1 |
 | NODE-3 | Authentication, Permissions & Scoping | SUPPORTOS-144 | NODE-1, NODE-2 |
 | NODE-4 | Customer Management Port | SUPPORTOS-145 | NODE-3 |
 | NODE-5 | Ticket Management Port | *(no intake yet)* | NODE-4 |
