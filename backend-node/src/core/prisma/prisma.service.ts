@@ -45,14 +45,10 @@ export class PrismaService
   }
 
   /**
-   * The owner-scope extension (NODE-3). Applied here rather than offered
-   * as a helper, so a handler writing a raw
-   * `prisma.<model>.findMany()` still gets a scoped query — there is no
-   * unscoped path to call. See core/scoping/owner-scope.ts.
-   *
-   * `$extends` returns a NEW client rather than mutating this one, so the
-   * scoped client is what modules must inject. Exposed as a getter so the
-   * extension is built once.
+   * The owner-scope extension, applied here rather than offered as a helper
+   * so there is no unscoped path to call (see owner-scope.ts). `$extends`
+   * returns a new client, so this — not `this` — is what modules inject;
+   * a getter so it is built once.
    */
   private scopedClient?: ReturnType<PrismaClient['$extends']>;
 

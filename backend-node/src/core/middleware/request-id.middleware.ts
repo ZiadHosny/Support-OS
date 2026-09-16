@@ -45,11 +45,9 @@ export class RequestIdMiddleware implements NestMiddleware {
     // a downstream handler throws before it would otherwise be set.
     res.setHeader(RESPONSE_HEADER, requestId);
 
-    // `userId` starts null; NODE-3's auth guard fills it in once the caller
-    // is known, by mutating this same store object in place (the object
-    // reference, not a new `.run()` call, is what later middleware/guards
-    // see) — mirroring AccessLogMiddleware setting `user_id_var` only after
-    // DRF resolves the authenticated user in middleware.py.
+    // `userId` starts null; the auth guard mutates this same store object
+    // in place once the caller is known — the reference, not a new `.run()`
+    // call, is what later middleware and guards see.
     requestContextStorage.run({ requestId, userId: null }, () => next());
   }
 }

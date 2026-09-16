@@ -48,24 +48,18 @@ export class HealthController {
       await this.prisma.$queryRaw`SELECT 1`;
       return { status: 'ok', database: 'ok' };
     } catch {
-      // Returned, not thrown: HealthView returns a `Response`, never
-      // raises, so `EnvelopeJSONRenderer` wraps the 503 body as a SUCCESS
-      // envelope on the Django side too (test_health.py::
-      // test_health_reports_degraded_when_database_unreachable). The
-      // global EnvelopeInterceptor treats any non-thrown return value the
-      // same way regardless of status code (its only status-code branch
-      // is the 204/304 empty-body case) — `passthrough: true` lets this
-      // handler set the status while still returning a plain payload for
-      // that interceptor to wrap.
+      // Returned, not thrown: HealthView never raises, so Django wraps even
+      // the 503 body in a SUCCESS envelope
+      // (test_health_reports_degraded_when_database_unreachable).
+      // `passthrough: true` sets the status while still handing the
+      // interceptor a plain payload to wrap.
       response.status(503);
       return { status: 'degraded', database: 'error' };
     }
   }
 
-  // Nest resolves one route (method + path) per decorated method — stacking
-  // multiple verb decorators on a single method silently keeps only the
-  // last one applied (a real mistake caught by testing this locally: it
-  // registered POST only). Every disallowed verb needs its own handler.
+  // Nest resolves one route per decorated method: stacking verb decorators
+  // on one method silently keeps only the last. Each verb needs its own.
   @Post()
   postNotAllowed(): never {
     throw new MethodNotAllowedException();

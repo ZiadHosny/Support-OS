@@ -1,7 +1,6 @@
 /**
  * `error.code` by HTTP status — the 12-code table from `README.md` §
- * "Error codes", reproduced exactly. `apps/core/exceptions.py` derives
- * these from DRF's own exception classes; this is the fixed target, not a
+ * "Error codes", reproduced exactly. This is the fixed target, not a
  * starting point.
  */
 export const STATUS_TO_CODE: Record<number, string> = {
@@ -16,35 +15,23 @@ export const STATUS_TO_CODE: Record<number, string> = {
 };
 
 /**
- * 401 carries TWO codes, and the difference is load-bearing (NODE-3).
- * Probed against Django:
+ * 401 carries three codes, and the difference is load-bearing. Probed
+ * against Django:
  *
- *   no Authorization header          -> not_authenticated
- *   present but malformed/expired    -> token_not_valid
+ *   no Authorization header       -> not_authenticated
+ *   present but malformed/expired -> token_not_valid
+ *   wrong credential pair         -> authentication_failed
  *
- * The frontend's silent-refresh interceptor
- * (frontend/src/shared/lib/api/client.ts:96-98) retries ONLY on
- * `token_not_valid`. Returning `not_authenticated` for an expired token
- * means the refresh never fires and every user is hard-logged-out when
- * their access token expires; returning `token_not_valid` for a missing
- * token makes the browser attempt a pointless refresh on every anonymous
- * request.
- *
- * STATUS_TO_CODE above cannot express two codes for one status, so this
- * one is thrown explicitly by the JWT guard, through the `code` seam
- * `AllExceptionsFilter.resolveHttpException` already reads.
+ * The frontend's silent refresh (frontend/src/shared/lib/api/client.ts:96-98)
+ * retries ONLY on `token_not_valid`. Get it wrong and either every user is
+ * hard-logged-out when their access token expires, or every anonymous
+ * request triggers a pointless refresh. Both are thrown explicitly, through
+ * the `code` seam `AllExceptionsFilter.resolveHttpException` reads.
  */
 export const TOKEN_NOT_VALID = 'token_not_valid';
 export const TOKEN_NOT_VALID_MESSAGE =
   'Given token not valid for any token type';
 
-/**
- * The THIRD 401 code: simplejwt's `TokenObtainSerializer` raises DRF's
- * `AuthenticationFailed` for a bad credential pair, whose `default_code`
- * is `authentication_failed` — not `not_authenticated`, which is what a
- * plain `UnauthorizedException` would produce here. Verified by probing
- * Django with a wrong password.
- */
 export const AUTHENTICATION_FAILED = 'authentication_failed';
 export const NO_ACTIVE_ACCOUNT_MESSAGE =
   'No active account found with the given credentials';

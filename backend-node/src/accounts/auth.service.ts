@@ -241,10 +241,9 @@ export class AuthService {
   }
 
   /**
-   * A TOTP code, or a single-use recovery code. A Fernet decryption
-   * failure (a rotated MFA_ENCRYPTION_KEY, a corrupt value) is treated as
-   * "no working secret" rather than a 500 — the recovery codes are then
-   * the only way in, which is what they are for.
+   * A TOTP code, or a single-use recovery code. A Fernet decryption failure
+   * (rotated key, corrupt value) counts as "no working secret" rather than a
+   * 500 — recovery codes are then the only way in, which is their purpose.
    */
   private async consumeSecondFactor(
     userId: bigint,
@@ -299,15 +298,12 @@ export class AuthService {
   }
 
   /**
-   * `POST /api/auth/password-reset/request/` — always 200, whether or not
-   * the address exists. Revealing which addresses are registered would be
-   * an enumeration oracle (the Django view's own `description` says so).
+   * `POST /api/auth/password-reset/request/` — always 200, existing address
+   * or not, so it cannot be used to enumerate registered addresses.
    *
-   * Email delivery itself is SLA-4's mechanism and is NOT ported here:
-   * `NODE-7` owns background jobs and notifications. The token is minted
-   * and discarded, so the endpoint's observable contract (always 200,
-   * never leaks existence) is faithful while the side effect is not yet.
-   * Recorded in backend-node/README.md rather than left implicit.
+   * Delivery is not ported (`NODE-7` owns notifications): the token is
+   * minted and discarded, so the observable contract holds but the side
+   * effect does not yet. Recorded in backend-node/README.md.
    */
   async requestPasswordReset(email: string): Promise<void> {
     const row = await this.users.findByEmail(email);
@@ -353,11 +349,9 @@ export class AuthService {
   /**
    * `POST /api/auth/invite/confirm/` — `InviteConfirmSerializer`.
    *
-   * The precondition is `is_active = false` AND an UNUSABLE password, not
-   * `is_active` alone: a still-cryptographically-valid invite sitting in
-   * an old inbox must not be replayable to reactivate an account an admin
-   * later deactivated for cause. Django writes an unusable password as
-   * `!` + random characters, which `parseDjangoHash` already rejects.
+   * The precondition is `is_active = false` AND an unusable password, not
+   * `is_active` alone: a still-valid invite in an old inbox must not
+   * reactivate an account an admin later deactivated for cause.
    */
   async confirmInvite(token: string, password: string): Promise<void> {
     const invalid = new BadRequestException({

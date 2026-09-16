@@ -1,33 +1,22 @@
 /**
- * Query-param scoping — `apps/core/scoping.py`, ported. The OPT-IN half.
+ * Query-param scoping — `apps/core/scoping.py`, ported. The OPT-IN half,
+ * and never a security boundary (CONVENTIONS.md § 33: "a `?department=`
+ * filter is a convenience; it authorizes nothing"). See owner-scope.ts for
+ * the layer that is one.
  *
- * This is NOT a security boundary and must never be made one.
- * CONVENTIONS.md § 33, verbatim: "Never reach for the second where the
- * first is meant. A `?department=` filter is a convenience; it authorizes
- * nothing." An absent `?department=` means NO FILTER — that is required
- * behaviour, not a gap. Making it mandatory would return empty lists on
- * every staff screen. See owner-scope.ts for the layer that IS a boundary.
- *
- * The param contract, identical everywhere:
+ * The param contract:
  *   absent or empty -> no filtering at all
  *   a numeric id    -> filter by that id
- *   the literal
  *   "none"          -> rows with no value in this scope
- *   anything else   -> 400. NEVER a silent no-op: a typo'd filter that
+ *   anything else   -> 400, never a silent no-op: a typo'd filter that
  *                      quietly returns everything is the harder bug.
  *
- * Multiple scopes compose with AND, so `?department=3&branch=7` narrows on
- * both and a no-overlap combination returns an empty page — not a 400, and
- * not an OR.
+ * Scopes compose with AND, so a no-overlap combination returns an empty
+ * page — not a 400, and not an OR.
  */
-
 import { BadRequestException } from '@nestjs/common';
 
-/**
- * The sentinel for "rows with no value in this scope". A string, not an
- * empty param: `?department=` (empty) already means "no filter", and the
- * two must not collide.
- */
+/** A string, not an empty param: `?department=` already means "no filter". */
 export const UNSCOPED = 'none';
 
 export interface ScopeFilter {
@@ -37,10 +26,7 @@ export interface ScopeFilter {
   field: string;
 }
 
-/**
- * Builds the `where` fragment for every scope the caller actually sent.
- * Returns `{}` when none were — an unfiltered list is the correct result.
- */
+/** Returns `{}` when no scope was sent — an unfiltered list is correct. */
 export function buildScopeWhere(
   query: Record<string, unknown>,
   scopes: readonly ScopeFilter[],

@@ -1,15 +1,11 @@
 /**
- * The query-string-free request path — the Node equivalent of Django's
- * `request.path` (never `request.get_full_path()`; CONVENTIONS.md § 10/
- * § 34, since a query string can carry a credential, e.g. the inbound-
- * email webhook's `?token=`).
+ * The query-string-free request path — Django's `request.path`, never
+ * `get_full_path()` (CONVENTIONS.md § 10/§ 34: a query string can carry a
+ * credential).
  *
- * NOT `req.path`/`req.url`: Nest mounts `configure()`-registered
- * middleware AT the global prefix (`app.setGlobalPrefix('api')`), so
- * inside that middleware `req.path` is relative to the mount point —
- * `/api/health/` arrives as `req.path === '/'`. `req.originalUrl` is the
- * one property Express never rewrites for a sub-mount, so it is the only
- * reliable source of the full path, with its query string sliced off.
+ * Not `req.path`: Nest mounts `configure()` middleware at the global prefix,
+ * so there `/api/health/` reads as `/`. `req.originalUrl` is the one property
+ * Express never rewrites for a sub-mount.
  */
 
 import type { Request } from 'express';

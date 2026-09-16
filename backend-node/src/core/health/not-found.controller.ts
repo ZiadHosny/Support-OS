@@ -1,30 +1,21 @@
 /**
- * Catch-all for unmatched paths under `/api/` — the Node port of
- * `apps/core/views.py::ApiNotFoundView`. Registered last (see
- * `app.module.ts`'s controller order), so every other controller's routes
- * are tried first; this only ever receives what nothing else matched.
+ * Catch-all for unmatched paths under `/api/` — the port of
+ * `ApiNotFoundView`. Registered last in `app.module.ts` so it only receives
+ * what nothing else matched. Paths outside `/api/` never reach it and keep
+ * Nest's own HTML 404 (test_health.py::test_non_api_paths_are_untouched).
  *
- * `@Controller()` + `@All('*')`, combined with `app.setGlobalPrefix('api')`
- * in `main.ts`, resolves to `/api/*` — any path OUTSIDE `/api/` never
- * reaches this controller at all, so it is left to Express/Nest's own
- * default 404 (not JSON), matching `apps/core/tests/test_health.py::
- * ApiCatchAllTests::test_non_api_paths_are_untouched`.
- *
- * Any method is a 404 here, not a 405 — the path does not exist, so no
- * method on it is allowed.
+ * Any method is 404 here, not 405: the path does not exist, so no method on
+ * it is allowed.
  */
 
 import { All, Controller, NotFoundException } from '@nestjs/common';
 import { PublicRoute } from '../auth/route-declaration.decorator.js';
 
-// AllowAny, matching ApiNotFoundView: an unmatched path must 404 the same
-// way whether or not the caller sent credentials.
+// An unmatched path must 404 the same way with or without credentials.
 @PublicRoute()
 @Controller()
 export class NotFoundController {
-  // Express 5 / path-to-regexp v6+ requires a NAMED wildcard — a bare '*'
-  // is deprecated (auto-converted with a startup warning). '*path' matches
-  // every remaining segment the same way '*' used to.
+  // Express 5 requires a NAMED wildcard; a bare '*' is deprecated.
   @All('*path')
   notFound(): never {
     throw new NotFoundException();

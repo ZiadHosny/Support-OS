@@ -7,11 +7,9 @@
  * true. Neither is a top-level key — `errorEnvelope()` puts both inside
  * `error`, matching `apps/core/envelope.py`.
  *
- * A future custom exception (NODE-3's JWT errors distinguishing
- * `not_authenticated`/`authentication_failed`/`token_not_valid`, all 401)
- * can override the code by throwing an `HttpException` whose response body
- * carries an explicit `code` property — `resolve()` reads that
- * preferentially before falling back to the status-code table.
+ * An exception can override its code by carrying an explicit `code`
+ * property in its response body — `resolve()` reads that before falling
+ * back to the status-code table. The three 401s rely on this.
  */
 
 import {
@@ -84,12 +82,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       envelope.error.request_id = requestId;
     }
 
-    // apps/core/exceptions.py only ever passes `debug=` to `error_envelope`
-    // from `_internal_error_response` — i.e. only for the unrecognised/500
-    // path. Every recognised exception (400/401/403/404/405/406/...) calls
-    // `error_envelope(code, message, fields)` with no `debug` argument at
-    // all, DEBUG or not. Attaching it to every error here, not just 500s,
-    // would diverge from that on every 4xx.
+    // Django passes `debug=` only from the unrecognised/500 path; every
+    // recognised 4xx gets none, DEBUG or not. Attaching it to all errors
+    // here would diverge on every 4xx.
     if (
       resolved.status >= 500 &&
       this.configService.get('DJANGO_DEBUG', { infer: true }) &&
@@ -106,20 +101,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private resolve(exception: unknown): Resolved {
-    // express.json()'s body-parser throws a raw SyntaxError on a malformed
-    // request body. NestJS's own `ExpressAdapter.mapException` — a layer
-    // BELOW this filter, not something this filter can opt out of —
-    // unconditionally rewrites `SyntaxError`/`URIError` into
-    // `new BadRequestException(error.message)` before any exception ever
-    // reaches a `@Catch()` filter, so `exception instanceof SyntaxError`
-    // can never be true here; only the re-wrapped `BadRequestException`
-    // is observable. Detected by message shape (V8's JSON.parse() errors
-    // always mention "JSON") since the rewrap drops every other signal
-    // (`.type`, `.expose`) the original body-parser error carried.
-    // apps/core/tests/test_health.py accepts either `parse_error` or
-    // `method_not_allowed` here ("whichever fires first"); body-parsing
-    // runs before route/method resolution in this service, so this is the
-    // branch that fires.
+    // Nest's ExpressAdapter.mapException rewrites the body-parser's raw
+    // SyntaxError into a BadRequestException below this filter, so
+    // `instanceof SyntaxError` can never be true here. The rewrap drops
+    // `.type` and `.expose` too, leaving the message as the only signal
+    // (V8's JSON.parse errors always mention "JSON").
     if (exception instanceof HttpException && exception.getStatus() === 400) {
       const body = exception.getResponse();
       const message =

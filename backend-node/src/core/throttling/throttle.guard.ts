@@ -2,16 +2,11 @@
  * Named-scope rate limiting — `apps/core/throttling.py`'s
  * `FailOpenScopedRateThrottle`, ported.
  *
- * **Fail open, never closed.** A cache outage must log at WARNING and
- * ALLOW the request. DRF's own throttle would raise inside the check and
- * turn a Redis blip into a 500 on every credential endpoint — strictly
- * worse than not throttling at all, because a security control that turns
- * a cache blip into a total outage is one an operator switches off, and
- * then there is no control.
- *
- * This is deliberately the OPPOSITE posture from the permission guard in
- * `core/auth/auth.guard.ts`, which fails closed. Both are in this same
- * story; copying one posture to the other would be a real mistake.
+ * **Fail open, never closed.** A store outage logs at WARNING and ALLOWS
+ * the request: turning a cache blip into a 500 on every credential endpoint
+ * is worse than not throttling, because it is a control an operator then
+ * switches off. This is deliberately the opposite posture from
+ * `core/auth/auth.guard.ts`, which fails closed.
  *
  * Keyed per IP, because these endpoints have no authenticated identity
  * yet. `DJANGO_NUM_PROXIES` decides how far into `X-Forwarded-For` to
@@ -45,12 +40,9 @@ interface Bucket {
 @Injectable()
 export class ThrottleGuard implements CanActivate {
   /**
-   * An in-process store. Django backs its throttle with Redis (PROD-2), so
-   * a multi-instance deployment shares one budget there and would not
-   * here — recorded in backend-node/README.md as a known gap for the
-   * cutover rather than papered over. The fail-open posture, the shared
-   * scope and the per-IP key — the parts a parity run can observe — are
-   * faithful.
+   * In-process. Django backs its throttle with Redis (PROD-2), so a
+   * multi-instance deployment would not share one budget here — a known
+   * cutover gap, recorded in backend-node/README.md.
    */
   private readonly buckets = new Map<string, Bucket>();
   private readonly numProxies: number;

@@ -1,17 +1,11 @@
 /**
- * Cross-cutting machinery every later NODE module depends on — the Node
- * counterpart of `apps/core`. Registers the five reused pieces as global
- * providers (DI-wired, unlike `app.useGlobalFilters()` etc. in `main.ts`,
- * which would not get `ConfigService` injected into `AllExceptionsFilter`):
- * config, Prisma, the envelope interceptor, the exception filter, and the
- * `Accept` negotiation guard. The correlation-id middleware is wired
- * separately in `AppModule.configure()` — Nest applies middleware and
- * global providers through different mechanisms.
+ * Cross-cutting machinery every later NODE module depends on — the
+ * counterpart of `apps/core`. The global providers are registered here
+ * rather than via `app.useGlobalFilters()` so DI reaches them
+ * (`AllExceptionsFilter` needs `ConfigService`).
  *
- * Controllers here are the ones with no other home: the health endpoint
- * and the `/api/` catch-all. `NotFoundController` MUST be declared last
- * among all controllers app-wide so every other route is tried first —
- * see `AppModule`.
+ * `NotFoundController` holds the `/api/*path` catch-all and must be declared
+ * last among all controllers app-wide — see `AppModule`.
  */
 
 import { Module } from '@nestjs/common';
@@ -33,10 +27,9 @@ import { ThrottleGuard } from './throttling/throttle.guard.js';
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: EnvelopeInterceptor },
-    // Guard order is the registration order. Throttling runs BEFORE
-    // authentication, matching DRF (a throttled caller is rejected without
-    // the ~180 ms password verification NODE-3 introduces); `Accept`
-    // negotiation then, and the auth/permission guard last.
+    // Registration order is guard order. Throttling runs before auth,
+    // matching DRF: a throttled caller is rejected without paying the
+    // ~180 ms password verification.
     { provide: APP_GUARD, useClass: ThrottleGuard },
     { provide: APP_GUARD, useClass: AcceptNegotiationGuard },
     { provide: APP_GUARD, useClass: AuthGuard },

@@ -14,11 +14,8 @@
  *   key      = sha256(key_salt + SECRET_KEY).digest()
  *   sig      = HMAC(key, value, sha256)
  *
- * NOTE: the algorithm is **sha256**, not sha1. `salted_hmac`'s own default
- * parameter is sha1, which is what makes this easy to get wrong — but
- * `Signer.__init__` sets `self.algorithm = algorithm or "sha256"` and
- * passes it down, so every signature this project produces is sha256.
- * Verified live against a real token.
+ * The algorithm is sha256, not sha1: `salted_hmac`'s own default parameter
+ * is sha1, but `Signer.__init__` overrides it. Verified against a real token.
  */
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
@@ -88,11 +85,9 @@ function constantTimeEquals(a: string, b: string): boolean {
 /**
  * `signing.dumps(payload, salt=…)`.
  *
- * Django compresses the payload only when that makes it shorter, marking a
- * compressed one with a leading '.'. The payloads this project signs — an
- * int, or a two-element list — never compress smaller, so this always
- * emits the uncompressed form. A compressed token from Django would still
- * be READ correctly (see `loads`), which is the direction that matters.
+ * Django compresses only when that shortens the payload, marking it with a
+ * leading '.'. Nothing signed here compresses smaller, so this always emits
+ * the uncompressed form; `loads` still reads a compressed one.
  */
 export function dumps(
   payload: unknown,

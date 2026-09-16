@@ -1,12 +1,7 @@
 /**
- * The one sanctioned opt-out from the envelope interceptor — the Node
- * counterpart of `apps/core/renderers.py`'s `PlainTextRenderer`. Meta's
- * WhatsApp webhook verification (`GET`) requires the `hub.challenge` value
- * echoed back as a raw string, not this API's envelope. No route in this
- * story uses it; it exists so `NODE-6` (Communications Port) has it
- * without re-deriving the mechanism.
- *
- * Usage: `@SkipEnvelope() @Get('webhooks/whatsapp') handshake() { ... }`
+ * The one sanctioned opt-out from the envelope interceptor (Django's
+ * `PlainTextRenderer`). Meta's WhatsApp webhook verification needs
+ * `hub.challenge` echoed as a raw string. Unused until `NODE-6`.
  */
 
 import { SetMetadata } from '@nestjs/common';

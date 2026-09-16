@@ -9,11 +9,8 @@
  *    This is Django's grant-on-omission case, made explicit. See
  *    route-declaration.decorator.ts for why the runtime is NOT inverted.
  *
- * The two 401 codes are decided here, and only here:
- *  - no Authorization header at all -> `not_authenticated`
- *  - a header present but rejected  -> `token_not_valid`
- * The frontend's silent refresh keys on the second exactly
- * (frontend/src/shared/lib/api/client.ts:96-98).
+ * The 401 codes are decided here and only here; see
+ * `core/filters/error-codes.ts` for why the distinction matters.
  */
 
 import {
@@ -91,10 +88,8 @@ export class AuthGuard implements CanActivate {
     if (!user || !user.is_active) throw tokenNotValid();
 
     setAuthUser(request, user);
-    // Publish the owner scope for the rest of this request, so the Prisma
-    // extension narrows every query a portal caller makes without any
-    // handler opting in. A staff account (customerId === null) is not
-    // narrowed. See core/scoping/owner-scope.ts.
+    // Publish the owner scope, so the Prisma extension narrows a portal
+    // caller's queries with no handler opting in. See owner-scope.ts.
     enterOwnerScope({ customerId: user.customerId });
 
     const required = this.reflector.getAllAndOverride<string>(

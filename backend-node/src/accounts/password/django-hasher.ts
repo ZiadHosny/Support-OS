@@ -1,46 +1,34 @@
 /**
- * Django password-hash verification — NODE-3's 🔑 "no credential
- * migration" task. Every existing account must sign in with its current
- * password; a forced reset is not an acceptable outcome.
+ * Django password-hash verification, so that no account needs a password
+ * reset to move across.
  *
  * Stored format (read from a live row):
  *
  *   pbkdf2_sha256$1000000$d17LRk0TM3gfUCD5wTY0HQ$GZHI5Cb...pCI=
  *   └ algorithm ┘└ iters ┘└────── salt ────────┘└─ base64(hash) ─┘
  *
- * The salt is used as a RAW ASCII string — it is NOT base64-decoded first
- * — and dklen is 32 (the sha256 digest size, which is what Django's
- * `dklen=0` default resolves to). Verified byte-for-byte against that row.
+ * The salt is used as a RAW ASCII string, not base64-decoded first, and
+ * dklen is 32. Verified byte-for-byte against that row.
  *
- * ALWAYS the async `crypto.pbkdf2`, NEVER `pbkdf2Sync`: measured at
- * ~180 ms per verification at Django's 1,000,000 iterations, which the
- * sync form would spend blocking the event loop, serialising the whole
- * service behind one login. The async form runs on the libuv threadpool,
- * whose default size is 4 — so at most four logins verify concurrently.
- * That cap is documented in backend-node/README.md rather than tuned away.
+ * Always the async `crypto.pbkdf2`, never `pbkdf2Sync`: ~180 ms per
+ * verification at 1,000,000 iterations, which the sync form would spend
+ * blocking the event loop. The async form runs on the libuv threadpool,
+ * whose default size of 4 caps concurrent logins.
  */
-
 import { pbkdf2, randomInt, timingSafeEqual } from 'node:crypto';
 
 export const DJANGO_ALGORITHM = 'pbkdf2_sha256';
 
 /**
- * Django 5.2's PBKDF2PasswordHasher default, and the value actually stored
- * in this database. A row hashed with a different count still verifies —
- * the count is read from the row, not from here. This constant is only
- * what a NEWLY encoded password uses, and what `needsRehash` compares
- * against.
+ * Only what a newly encoded password uses, and what `needsRehash` compares
+ * against — verification reads the count from the row itself.
  */
 export const DEFAULT_ITERATIONS = 1_000_000;
 
 /** sha256 digest size. Django passes dklen=0, which resolves to this. */
 const DKLEN = 32;
 
-/**
- * `django.utils.crypto.RANDOM_STRING_CHARS`, verified against the
- * installed Django 5.2.17. 22 characters of it is what `BasePasswordHasher
- * .salt()` produces (128 bits of entropy over a 62-character alphabet).
- */
+/** `RANDOM_STRING_CHARS`, verified against the installed Django 5.2.17. */
 const SALT_CHARS =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const SALT_LENGTH = 22;
@@ -53,10 +41,9 @@ export interface ParsedHash {
 }
 
 /**
- * Splits a stored value, or returns null when it is not a well-formed
- * PBKDF2 hash. An "unusable password" — Django writes `!` followed by
- * random characters for an account pending its invite (SEC-5) — lands
- * here and must never verify.
+ * Null when the value is not a well-formed PBKDF2 hash. Django's "unusable
+ * password" (`!` plus random characters, written for an account pending its
+ * invite — SEC-5) lands here and must never verify.
  */
 export function parseDjangoHash(
   stored: string | null | undefined,
@@ -84,11 +71,9 @@ function derive(
 }
 
 /**
- * Thrown for a stored hash this verifier cannot evaluate — a different
- * algorithm from Django's `PASSWORD_HASHERS` fallbacks (PBKDF2SHA1,
- * Argon2, BCryptSHA256, Scrypt). No row uses one today. Loud on purpose:
- * a silent `false` would read as "wrong password" forever, for an account
- * whose password is in fact correct.
+ * For a `PASSWORD_HASHERS` fallback (PBKDF2SHA1, Argon2, BCryptSHA256,
+ * Scrypt); no row uses one today. Loud on purpose — a silent `false` would
+ * read as "wrong password" forever for a correct password.
  */
 export class UnsupportedHashAlgorithmError extends Error {
   constructor(algorithm: string) {
@@ -99,11 +84,8 @@ export class UnsupportedHashAlgorithmError extends Error {
   }
 }
 
-/**
- * Constant-time verification of a plaintext password against a stored
- * Django hash. Returns false for an unusable or malformed stored value,
- * and throws only for a recognised-but-unsupported algorithm.
- */
+/** False for an unusable or malformed stored value; throws only for an
+ * algorithm this verifier does not implement. */
 export async function verifyDjangoPassword(
   password: string,
   stored: string | null | undefined,
@@ -131,10 +113,9 @@ function generateSalt(): string {
 }
 
 /**
- * Encodes a new password in Django's format. The bar this has to clear is
- * not "the Node service can read it back" but "Django can read it back" —
- * both services serve the same rows, and a password changed here is signed
- * in with there.
+ * The bar is not that this service can read it back but that Django can:
+ * both serve the same rows, and a password changed here is signed in with
+ * there.
  */
 export async function encodeDjangoPassword(
   password: string,
@@ -146,11 +127,9 @@ export async function encodeDjangoPassword(
 }
 
 /**
- * Whether a stored hash should be re-encoded after a successful login —
- * the same thing Django's `check_password` does through its `setter`
- * callback. A no-op today, with both services at 1,000,000 iterations;
- * written now precisely so that raising the count later is a config
- * change rather than a discovery.
+ * Re-encode after a successful login — what `check_password` does through
+ * its `setter`. A no-op while both services sit at the same count; written
+ * now so raising it later is a config change, not a discovery.
  */
 export function needsRehash(
   stored: string,

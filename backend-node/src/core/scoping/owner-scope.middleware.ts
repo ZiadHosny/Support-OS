@@ -1,12 +1,10 @@
 /**
  * Establishes the owner-scope store for the request.
  *
- * It must run BEFORE routing (so every later query sees it) but the scope
- * itself is not known until the auth guard has authenticated the caller —
- * so this seeds `{customerId: null}` and the guard mutates it in place.
- * A request that never reaches the guard (a public route) therefore keeps
- * `customerId: null`, i.e. unscoped, which is correct: there is no owner
- * to scope to.
+ * It runs before routing, but the scope is unknown until the auth guard has
+ * authenticated the caller — so it seeds `{customerId: null}` and the guard
+ * mutates it in place. A public route keeps `null`, i.e. unscoped, which is
+ * correct: there is no owner to scope to.
  */
 
 import { Injectable, NestMiddleware } from '@nestjs/common';

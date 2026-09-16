@@ -1,18 +1,11 @@
 /**
- * `DATABASE_URL` does not exist anywhere in this project — Django reads
- * discrete `POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_HOST`/
- * `POSTGRES_PORT` (`backend/config/settings/base.py`), and Prisma requires a
- * URL. Composing it here, from the same variables Django already reads, is
- * the only option that does not create a second source of truth for the
- * same credentials — adding `DATABASE_URL` to `backend/.env` would mean two
- * places to change a password and one of them silently stale.
+ * `DATABASE_URL` does not exist in this project — Django reads discrete
+ * `POSTGRES_*` vars and Prisma needs a URL. Composing it from those same
+ * vars avoids a second source of truth for one set of credentials.
  *
- * `DATABASE_URL` is therefore never read from `.env`, and never written to
- * `process.env` either: `PrismaService` calls this directly with its
- * injected, validated config and hands the result straight to the `pg`
- * driver adapter's constructor (Prisma 7's `prisma-client` generator reads
- * its connection string from an adapter, not from an environment variable
- * at runtime).
+ * It is never read from `.env` and never written to `process.env`:
+ * `PrismaService` passes the result straight to the `pg` driver adapter,
+ * which is where Prisma 7 reads its connection string.
  */
 
 import type { Env } from './env.schema.js';

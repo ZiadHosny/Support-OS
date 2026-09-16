@@ -4,14 +4,10 @@
  * before `AppModule`'s `configure()`-registered middleware, matching
  * `backend/config/settings/base.py`'s `MIDDLEWARE` order (CORS first).
  *
- * `bodyParser: false`: Nest's default registers `express.json()`/
- * `express.urlencoded()` automatically during `init()`, BEFORE any
- * `configure()`-based middleware — which would put body-parsing ahead of
- * `RequestIdMiddleware`, so a malformed-JSON request would 400 with no
- * `request_id` in the envelope (Django's equivalent parses the body
- * inside the view, i.e. after `RequestIDMiddleware` has already set the
- * context — see `app.module.ts` for the parser registered in the right
- * place instead).
+ * `bodyParser: false`: Nest registers the parsers during `init()`, before
+ * any `configure()` middleware, which would put body-parsing ahead of
+ * `RequestIdMiddleware` and leave a malformed-JSON 400 with no `request_id`.
+ * `app.module.ts` registers them in the right place instead.
  */
 
 import { NestFactory } from '@nestjs/core';
@@ -42,10 +38,8 @@ async function bootstrap(): Promise<void> {
     .filter(Boolean);
   app.enableCors({ origin: corsOrigins, credentials: true });
 
-  // The fail-closed guarantee, relocated to startup (NODE-3): a route that
-  // declares no access rule cannot reach production, because the process
-  // refuses to start. See core/auth/route-declaration.decorator.ts for why
-  // the RUNTIME keeps Django's grant-on-omission instead.
+  // The fail-closed guarantee, relocated to startup: a route declaring no
+  // access rule cannot boot. See route-declaration.decorator.ts.
   assertEveryRouteDeclaresAccess(app);
 
   const port = config.get('NODE_PORT', { infer: true });

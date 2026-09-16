@@ -58,10 +58,9 @@ export interface PermissionSubject {
  * Every permission this user holds — `permissions_for` from
  * `apps/core/permissions.py`, reproduced exactly.
  *
- * The superuser short-circuit is NOT optional and NOT hypothetical: this
- * database has a real superuser, and Django's own `has_perm` short-circuits
- * for one, so anything narrower here would make the API and `/auth/me/`
- * disagree for that account — a bug only one user would ever report.
+ * The superuser short-circuit is not hypothetical: this database has a real
+ * superuser, and omitting it would make the API and `/auth/me/` disagree for
+ * that one account.
  */
 export function permissionsFor(
   user: PermissionSubject | null | undefined,
