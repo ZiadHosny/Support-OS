@@ -23,14 +23,23 @@ import { AllExceptionsFilter } from './filters/all-exceptions.filter.js';
 import { AcceptNegotiationGuard } from './http/accept-negotiation.guard.js';
 import { HealthController } from './health/health.controller.js';
 import { NotFoundController } from './health/not-found.controller.js';
+import { PermissionsController } from './auth/permissions.controller.js';
+import { AuthGuard } from './auth/auth.guard.js';
+import { ThrottleGuard } from './throttling/throttle.guard.js';
 
 @Module({
   imports: [ConfigModule, PrismaModule],
-  controllers: [HealthController, NotFoundController],
+  controllers: [HealthController, PermissionsController, NotFoundController],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: EnvelopeInterceptor },
+    // Guard order is the registration order. Throttling runs BEFORE
+    // authentication, matching DRF (a throttled caller is rejected without
+    // the ~180 ms password verification NODE-3 introduces); `Accept`
+    // negotiation then, and the auth/permission guard last.
+    { provide: APP_GUARD, useClass: ThrottleGuard },
     { provide: APP_GUARD, useClass: AcceptNegotiationGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })
 export class CoreModule {}

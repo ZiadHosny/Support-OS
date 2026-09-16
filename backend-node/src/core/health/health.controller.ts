@@ -26,12 +26,16 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PublicRoute } from '../auth/route-declaration.decorator.js';
 
 interface HealthPayload {
   status: 'ok' | 'degraded';
   database: 'ok' | 'error';
 }
 
+// AllowAny + authentication_classes = [] on the Django side: a load
+// balancer's liveness probe carries no credentials.
+@PublicRoute()
 @Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}

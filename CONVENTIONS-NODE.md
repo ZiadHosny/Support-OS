@@ -155,10 +155,27 @@ rule `CONV` § 23 already enforces on the Django side through a fully-populated 
 where an unmapped action grants rather than denies — the failure mode this inversion exists to
 prevent.
 
-Scoping (department/branch, and the portal's owner-scoping) is a **query-layer** concern, not a
-handler concern. `NODE-3` builds it. What this document fixes is the bar it must clear: it must be
-structurally impossible for a handler to issue an unscoped query against a scoped model. An opt-in
-helper that a handler can forget to call does not meet that bar.
+**Grant on omission at runtime; fail closed at startup (NODE-3).** A route with no declared
+permission is authenticated-only, matching `HasPermission` exactly — inverting that would 403
+working endpoints and stop being a port. The fail-closed guarantee lives at **boot** instead: the
+process refuses to start if any route carries neither `@RequirePermission(...)` nor an explicit
+`@PublicRoute()` / `@AuthenticatedOnly()` (`src/core/auth/route-declaration.check.ts`). An
+undeclared route cannot reach production, while a declared-open one behaves exactly as Django's
+does. Do not re-litigate this in a later story.
+
+**Scoping is two different mechanisms, and only one is a boundary.** § 33 of `CONV` has the
+table; `NODE-3` built both:
+
+| Layer | Scopes by | Bypassable? |
+|---|---|---|
+| `src/core/scoping/owner-scope.ts` | who is calling (`customers_customer`) | **No** — a Prisma client extension, so a handler writing a raw `prisma.<model>.findMany()` still gets a scoped query |
+| `src/core/scoping/scope-filter.ts` | what the caller asked for (`?department=`) | **Yes, by design** — absent means unfiltered; it authorizes nothing |
+
+The owner-scope layer is a **Prisma extension, not an opt-in helper**, precisely because the
+requirement is that no handler can issue an unscoped query. Models opt IN by name in
+`OWNER_SCOPED_MODELS`; an unregistered model is untouched — defaulting every model to a
+`customer` relation caused a live false-403 on `Article.retrieve` (Story 46), and that is why the
+registry is a whitelist rather than a convention.
 
 ---
 

@@ -15,7 +15,11 @@
  */
 
 import { All, Controller, NotFoundException } from '@nestjs/common';
+import { PublicRoute } from '../auth/route-declaration.decorator.js';
 
+// AllowAny, matching ApiNotFoundView: an unmatched path must 404 the same
+// way whether or not the caller sent credentials.
+@PublicRoute()
 @Controller()
 export class NotFoundController {
   // Express 5 / path-to-regexp v6+ requires a NAMED wildcard — a bare '*'

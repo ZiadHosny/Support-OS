@@ -13,6 +13,7 @@ This feature is `EPIC 18 — Node.js Backend Port` (`SupportOs backlog.MD:1131-1
 | 116 | [116-story-port-contract-node-conventions-SUPPORTOS-141.md](116-story-port-contract-node-conventions-SUPPORTOS-141.md) | (NODE-0) Port Contract & Node Conventions | SUPPORTOS-141 | All prior epics (the Django API is the thing being frozen); Story 80 (`INT-1`, `../integrations/`) and Story 104 (`../bugs/104-story-openapi-schema-completeness.md`), both implemented |
 | 117 | [117-story-node-service-foundation-SUPPORTOS-142.md](117-story-node-service-foundation-SUPPORTOS-142.md) | (NODE-1) Node Service Foundation | SUPPORTOS-142 | Story 116 (`NODE-0`) — consumes both its artefacts: `docs/api-contract.django.yaml` and `CONVENTIONS-NODE.md` |
 | 118 | [118-story-contract-diff-harness-SUPPORTOS-143.md](118-story-contract-diff-harness-SUPPORTOS-143.md) | (NODE-2) Contract-Diff Harness | SUPPORTOS-143 | Stories 116 and 117 — reads the frozen contract, and needs a running Node service to diff against |
+| 119 | [119-story-auth-permissions-scoping-SUPPORTOS-144.md](119-story-auth-permissions-scoping-SUPPORTOS-144.md) | (NODE-3) Authentication, Permissions & Scoping | SUPPORTOS-144 | Stories 117 and 118 — the first story to move `implemented.json` off `[]`; every later NODE story depends on all five of its tasks |
 
 ## Dependency notes
 
@@ -53,11 +54,23 @@ None of this was visible from reading the plan or the Django source alone — Pr
 
 The plan ships the **0 % baseline** deliberately: with `NODE-1`'s service, 0 of 239 operations are implemented, so the first green run reports 0 % coverage and exits 0, and that run is recorded verbatim in `docs/VERIFICATION.md`. A coverage report that first appears at 40 % has no credible starting point.
 
-**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1157-1237`), in their backlog dependency order. Intakes exist for NODE-3, NODE-4 and NODE-6:
+**Story 119 (`NODE-3`) is planned, not yet implemented.** It is the largest story in the epic — five tasks, three 🔑 — and every later NODE story depends on all five. Planning verified the hard parts live rather than assuming them, and turned up **three places where the backlog's wording contradicts the shipped code**. In each, the plan keeps the shipped behaviour (this is a port) and says so explicitly:
+
+- **"A route without a declared permission must fail closed."** `HasPermission` deliberately does the opposite — an action with no `permission_map` entry is authenticated-only, and the class docstring argues the case ("a missing entry is far more often an unfinished map… a silent 403 is the harder bug to find"). The plan ports the runtime behaviour unchanged and relocates the fail-closed guarantee to **startup**: the service refuses to boot if any route declares no permission decision. The constraint's real intent — no route slips through undeclared — is met without changing a single response.
+- **"Reimplement department/branch scoping as a query layer that cannot be bypassed."** `CONVENTIONS.md` § 33 states in a table that `apps.core.scoping` is opt-in and **"authorizes nothing"**, while `CustomerScopedModelViewSet` is the actual un-bypassable security boundary. Making department/branch mandatory would return empty lists on every staff screen. The plan builds the un-bypassable layer for **portal owner-scoping** (which `NODE-9` explicitly depends on) and ports department/branch as the convenience filter it is.
+- **"Matching the existing claims."** The `user_id` claim is the **string** `"150"`, not an integer — a mismatch that would still validate Node-side and fail Django-side, so a Node-only test would pass it.
+
+Four things were proven live against the running services and the real database:
+
+- **The PBKDF2 verifier works, exactly.** `crypto.pbkdf2(password, salt, 1000000, 32, 'sha256').toString('base64')` reproduces a real stored hash **byte for byte** (salt used raw, not base64-decoded), and fails for a wrong password. Measured cost: **~180 ms**, so the async form is mandatory — `pbkdf2Sync` would block the event loop and serialise the whole service behind one login, and the libuv threadpool default of 4 caps concurrent logins.
+- **The frontend's silent refresh keys on one exact string.** Probed: no header → `not_authenticated`; present-but-invalid → `token_not_valid`; the interceptor (`client.ts:96-98`) retries **only** on the latter. Returning the wrong one hard-logs-out every user every 15 minutes, and nothing in this repo's tests would catch it — only a browser would.
+- **The superuser short-circuit is live.** `permissions_for` returns all 25 permissions for `is_superuser`, and `ziad@email.com` is a real superuser in this database. Omitting it strips that one account's access while every role-based account keeps working.
+- **`super_admin` holds 21 of 25 permissions** — missing `calendars.manage`, `calendars.view`, `customers.export_data`, `customers.erase_data`. Those endpoints 403 on **both** services, which the harness scores as a `MATCH`; it is a recorded product gap (`HOW_TO_USE.md` § 10), not something to "fix" by granting permissions.
+
+**Remaining stories in this epic, not yet planned** (`SupportOs backlog.MD:1167-1237`), in their backlog dependency order. Intakes exist for NODE-4 and NODE-6:
 
 | Backlog story | Title | Tracker id | Depends on |
 |---|---|---|---|
-| NODE-3 | Authentication, Permissions & Scoping | SUPPORTOS-144 | NODE-1, NODE-2 |
 | NODE-4 | Customer Management Port | SUPPORTOS-145 | NODE-3 |
 | NODE-5 | Ticket Management Port | *(no intake yet)* | NODE-4 |
 | NODE-6 | Communications & Agent Workspace Port | SUPPORTOS-146 | NODE-5 |

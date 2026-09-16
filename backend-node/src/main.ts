@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module.js';
 import type { Env } from './core/config/env.schema.js';
 import { configureLogger } from './core/logging/logger.js';
+import { assertEveryRouteDeclaresAccess } from './core/auth/route-declaration.check.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -40,6 +41,12 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
   app.enableCors({ origin: corsOrigins, credentials: true });
+
+  // The fail-closed guarantee, relocated to startup (NODE-3): a route that
+  // declares no access rule cannot reach production, because the process
+  // refuses to start. See core/auth/route-declaration.decorator.ts for why
+  // the RUNTIME keeps Django's grant-on-omission instead.
+  assertEveryRouteDeclaresAccess(app);
 
   const port = config.get('NODE_PORT', { infer: true });
   await app.listen(port);

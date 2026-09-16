@@ -36,6 +36,36 @@ export const envSchema = z.object({
   DJANGO_LOG_LEVEL: z.string().default('INFO'),
   DJANGO_LOG_FORMAT: z.enum(['text', 'json']).default('text'),
 
+  // --- Auth (EPIC 18, NODE-3) ---
+  // `DJANGO_SECRET_KEY` is required here, not optional: it is the fallback
+  // JWT signing key AND the source `MFA_ENCRYPTION_KEY` derives from when
+  // unset. Django itself fails to start without it.
+  DJANGO_SECRET_KEY: z.string().min(1, 'DJANGO_SECRET_KEY is required'),
+  // `base.py:196` — `env("JWT_SIGNING_KEY", default="").strip() or SECRET_KEY`.
+  // Blank-but-present is the normal state in this project's .env, so the
+  // fallback is the live path, not an edge case. Resolved in jwt.service.ts.
+  JWT_SIGNING_KEY: z.string().default(''),
+  JWT_ACCESS_TOKEN_LIFETIME_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15),
+  JWT_REFRESH_TOKEN_LIFETIME_DAYS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(7),
+  // `base.py:220-225` — blank derives a validly-shaped Fernet key from
+  // SECRET_KEY rather than reusing it directly. Derivation in mfa/fernet.ts.
+  MFA_ENCRYPTION_KEY: z.string().default(''),
+
+  // --- Throttling (PROD-3 parity) ---
+  REDIS_CACHE_URL: z.string().default('redis://localhost:6379/1'),
+  // Trusted proxies in front of the service. 0 = trust the socket address
+  // and ignore X-Forwarded-For, which a client can otherwise forge to get a
+  // fresh throttle bucket per request (CONVENTIONS.md § 36).
+  DJANGO_NUM_PROXIES: z.coerce.number().int().min(0).default(0),
+
   // --- This service's own port (EPIC 18, NODE-1) ---
   NODE_PORT: z.coerce.number().int().positive().default(8002),
 });

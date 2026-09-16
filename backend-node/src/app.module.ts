@@ -23,13 +23,17 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import express from 'express';
 import { CoreModule } from './core/core.module.js';
+import { AccountsModule } from './accounts/accounts.module.js';
 import {
   RequestIdMiddleware,
   AccessLogMiddleware,
 } from './core/middleware/request-id.middleware.js';
+import { OwnerScopeMiddleware } from './core/scoping/owner-scope.middleware.js';
 
+// AccountsModule before CoreModule: CoreModule's NotFoundController holds
+// the `/api/*path` catch-all and must be registered after every real route.
 @Module({
-  imports: [CoreModule],
+  imports: [AccountsModule, CoreModule],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
@@ -37,6 +41,7 @@ export class AppModule implements NestModule {
       .apply(
         RequestIdMiddleware,
         AccessLogMiddleware,
+        OwnerScopeMiddleware,
         express.json(),
         express.urlencoded({ extended: true }),
       )
